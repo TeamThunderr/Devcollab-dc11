@@ -39,7 +39,7 @@ export function Profile() {
     updateProfileMutation.mutate({
       name: formData.name,
       bio: formData.bio || null,
-      skills: formData.skills ? formData.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      skills: formData.skills ? formData.skills.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
       githubLink: formData.githubUrl ? formData.githubUrl : null,
     });
   };
@@ -182,7 +182,7 @@ export function Profile() {
                   </div>
                   {user.skills && user.skills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {user.skills.map((skill, i) => (
+                      {user.skills.map((skill: string, i: number) => (
                         <span key={i} className="px-2.5 py-1 rounded-md text-xs font-medium bg-black/10 dark:bg-white/10 text-black dark:text-white">
                           {skill}
                         </span>
