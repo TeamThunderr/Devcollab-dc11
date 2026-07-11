@@ -1,0 +1,11 @@
+{
+  "name": "@devcollab/config",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Shared lint, format, and TypeScript config for DevCollab v2",
+  "files": [
+    "eslint-base.js",
+    "prettier-base.json",
+    "tsconfig.base.json"
+  ]
+}

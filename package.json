@@ -1,0 +1,42 @@
+{
+  "name": "devcollab-v2",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\"",
+    "build": "npm run build --workspace=packages/shared-types && npm run build --workspace=apps/web && npm run build --workspace=apps/api",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p packages/shared-types/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test --config=apps/web/playwright.config.ts",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down",
+    "db:push": "npm run db:push --workspace=apps/api",
+    "db:generate": "npm run db:generate --workspace=apps/api",
+    "db:studio": "npm run db:studio --workspace=apps/api"
+  },
+  "devDependencies": {
+    "@esbuild/win32-x64": "^0.28.1",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "oauth2": "^0.0.1",
+    "pg": "^8.22.0",
+    "postgres": "^3.4.9"
+  }
+}

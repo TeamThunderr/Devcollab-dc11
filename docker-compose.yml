@@ -1,0 +1,73 @@
+# docker-compose.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Full stack — postgres, redis, api, web (nginx).
+# For production-like testing and final demo.
+# Usage: npm run docker:up
+# ─────────────────────────────────────────────────────────────────────────────
+version: '3.9'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: devcollab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-devcollab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devcollab}
+      POSTGRES_DB: ${POSTGRES_DB:-devcollab}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-devcollab} -d ${POSTGRES_DB:-devcollab}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: devcollab-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      target: runner
+    container_name: devcollab-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-devcollab}:${POSTGRES_PASSWORD:-devcollab}@postgres:5432/${POSTGRES_DB:-devcollab}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: runner
+    container_name: devcollab-web
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:

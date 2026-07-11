@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── DevCollab v2 Design Tokens ────────────────────────────────────────────
+   Single source of truth for all visual primitives.
+   Map into Tailwind via tailwind.config.ts — do not use raw values in JSX.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Base surfaces — pure neutral grayscale (monochrome) ── */
+  --surface-0: #09090b;
+  --surface-1: #121212;
+  --surface-2: #181818;
+  --surface-3: #242424;
+  --border-subtle: #242424;
+  --border-default: #333333;
+
+  /* ── Text ── */
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+
+  /* ── Signature accent — refined teal, not generic blue or purple ── */
+  --accent-500: #14b8a6;
+  --accent-600: #0d9488;
+  --accent-100: #134e4a;
+
+  /* ── Semantic colors ── */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+
+  /* ── Priority colors — distinct from semantic ── */
+  --priority-p0: #f87171;
+  --priority-p1: #fbbf24;
+  --priority-p2: #60a5fa;
+
+  /* ── Spacing scale — 4px base ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ── Radius scale ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* ── Typography ── */
+  --font-sans: 'Geist Sans', -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+}
+
+/* ── Global resets ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-sans);
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Custom thin scrollbar (Linear / Notion polish) ── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2A2A3A;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3A3A50;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ── AI Assistant color tokens ───────────────────────────────────────────────
+   Deep space navy base, indigo accent, pink for user identity.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --ai-bg:         #06080F;
+  --ai-accent:     #818CF8;
+  --ai-accent-glow: rgba(129,140,248,0.4);
+  --ai-user:       #F472B6;
+  --ai-surface:    rgba(255,255,255,0.05);
+  --ai-border:     rgba(255,255,255,0.08);
+}
+
+/* ── View Transitions ──────────────────────────────────────────────────────── */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* ── AI textarea placeholder color ─────────────────────────────────────────── */
+.ai-textarea::placeholder {
+  color: rgba(92, 101, 119, 0.8);
+}
