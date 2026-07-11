@@ -8,16 +8,16 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: devcollab-postgres-dev
+    container_name: devcollab-postgres-dev-2
     restart: unless-stopped
     environment:
       POSTGRES_USER: devcollab
       POSTGRES_PASSWORD: devcollab
       POSTGRES_DB: devcollab
     ports:
-      - '5434:5432'
+      - '5435:5432'
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_dev_data_2:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U devcollab -d devcollab']
       interval: 10s
@@ -27,13 +27,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: devcollab-redis-dev
+    container_name: devcollab-redis-dev-2
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - '6380:6379'
     command: redis-server --appendonly yes
     volumes:
-      - redis_dev_data:/data
+      - redis_dev_data_2:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -41,5 +41,5 @@ services:
       retries: 5
 
 volumes:
-  postgres_dev_data:
-  redis_dev_data:
+  postgres_dev_data_2:
+  redis_dev_data_2:
