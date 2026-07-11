@@ -7,6 +7,7 @@ import { useMyWorkspaces, WorkspaceMy } from "../hooks/useWorkspaces";
 import { useStore } from "../store/useStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeContext } from "../context/ThemeContext";
+import { CreateWorkspaceModal } from "../components/common/CreateWorkspaceModal";
 
 export function WorkspaceSelection() {
   const { currentUser } = useAuth();
@@ -18,7 +19,7 @@ export function WorkspaceSelection() {
   const isDark = context?.theme === "dark";
 
   const [search, setSearch] = useState("");
-  
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const filteredWorkspaces = workspaces?.filter(w => 
     w.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
@@ -39,9 +40,7 @@ export function WorkspaceSelection() {
       alert("Free plan users can only own one workspace. Please upgrade to Pro to create more.");
       return;
     }
-    // For now, redirect to a generic create modal or page if we had one.
-    // In a complete implementation, this would open a CreateWorkspaceModal.
-    alert("Create workspace modal would open here");
+    setIsCreateOpen(true);
   };
 
   const handleJoinWorkspace = () => {
@@ -104,6 +103,8 @@ export function WorkspaceSelection() {
             </button>
           </div>
         </motion.div>
+        
+        <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       </div>
     );
   }
@@ -230,6 +231,8 @@ export function WorkspaceSelection() {
           </div>
         )}
       </div>
+
+      <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </div>
   );
 }
