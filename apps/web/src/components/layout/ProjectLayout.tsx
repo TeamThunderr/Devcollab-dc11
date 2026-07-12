@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "../../components/ui/DropdownMenu";
 import { CommandPalette } from "./CommandPalette";
 import { useWorkspaces } from "../../hooks/useWorkspaces";
-import { useProjects } from "../../hooks/useProjects";
+import { useProjects, useProjectMembers } from "../../hooks/useProjects";
 import { useRole } from "../../context/RBACContext";
 import { getProjectPermissions } from "../../lib/projectPermissions";
 import { FloatingActionBar } from "../dashboard/FloatingActionBar";
@@ -46,6 +46,8 @@ export function ProjectLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   const { role } = useRole();
+  // Wait for project members to load before rendering role-dependent navGroups
+  const { isLoading: isProjectMembersLoading } = useProjectMembers(projectId ? Number(projectId) : undefined);
   const perms = getProjectPermissions(role);
   const { currentUser: user } = useAuth();
 
@@ -153,7 +155,9 @@ export function ProjectLayout() {
     }
   ];
 
-  const navGroups = (role === "ADMIN" || role === "OWNER") ? adminNavGroups : role === "MEMBER" ? memberNavGroups : viewerNavGroups;
+  // While project member data is loading, show the most restrictive nav (viewer) to prevent Member nav flashing for Viewers
+  const resolvedRole = isProjectMembersLoading ? (role === "ADMIN" || role === "OWNER" ? role : "VIEWER") : role;
+  const navGroups = (resolvedRole === "ADMIN" || resolvedRole === "OWNER") ? adminNavGroups : resolvedRole === "MEMBER" ? memberNavGroups : viewerNavGroups;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
