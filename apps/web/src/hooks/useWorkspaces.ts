@@ -86,7 +86,8 @@ export function useCreateWorkspace() {
       return data;
     },
     onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      return queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
     },
   });
 }

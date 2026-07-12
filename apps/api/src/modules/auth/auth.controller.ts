@@ -12,7 +12,7 @@ function setAuthCookies(reply: FastifyReply, token: string) {
   reply.setCookie('token', token, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: COOKIE_MAX_AGE,
     path: '/',
   })

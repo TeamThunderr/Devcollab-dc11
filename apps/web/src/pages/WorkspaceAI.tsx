@@ -388,6 +388,8 @@ export function WorkspaceAI() {
             }
             return newMsgs
           })
+        } else if (chunk.type === 'error') {
+          throw new Error(chunk.message || 'Error communicating with AI')
         }
       }
       
