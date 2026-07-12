@@ -48,6 +48,7 @@ export interface Task {
   status: TaskStatus;
   assigneeId?: string | number | null;
   priority?: Priority;
+  sprintId?: string | number | null;
   dueDate?: string | null;
   completedAt?: string;
   createdAt?: string;
@@ -131,6 +132,7 @@ interface WorkspaceState {
   notifications: Notification[];
   snippets: Snippet[];
   docs: Doc[];
+  sprints?: any[];
   
   workspace: { name: string; slug: string; description: string };
   profile: { name: string; bio: string; githubUrl: string; skills: string[] };
@@ -143,7 +145,7 @@ interface WorkspaceState {
   };
 
   // Actions
-  createTask: (projectId: string | number, title: string, assigneeId?: string | number, priority?: Priority, dueDate?: string, description?: string) => Promise<Task | undefined>;
+  createTask: (projectId: string | number, title: string, assigneeId?: string | number, priority?: Priority, dueDate?: string, description?: string, status?: TaskStatus) => Promise<Task | undefined>;
   updateTaskStatus: (taskId: string | number, status: TaskStatus) => Promise<void>;
   updateTaskAssignee: (taskId: string | number, assigneeId: string | number | null) => Promise<void>;
   updateTask: (taskId: string | number, data: Partial<Task>) => Promise<Task | undefined>;
@@ -182,61 +184,19 @@ interface WorkspaceState {
     notifications: Notification[];
     snippets: Snippet[];
     docs: Doc[];
+    sprints?: any[];
   }>) => void;
 }
 
-const mockMembers: Member[] = [
-  { id: 'm1', name: 'Sanjay Balan', email: 'sanjaybalan.1233@gmail.com', role: 'Admin', joinedAt: '2026-05-26T00:00:00Z', avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=SANJAY' },
-  { id: 'm2', name: 'Alice Smith', email: 'alice@acmcorp.com', role: 'Member', joinedAt: '2026-06-01T00:00:00Z', avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Alice' },
-  { id: 'm3', name: 'Bob Johnson', email: 'bob@acmcorp.com', role: 'Viewer', joinedAt: '2026-06-15T00:00:00Z', avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Bob' },
-];
-
-const mockProjects: Project[] = [
-  { id: 'p1', name: 'Marketing Site Redesign', description: 'Overhaul the main landing page.', status: 'active', priority: 'P0', tasksCount: 14, lastEdited: '2h ago', members: ['m1', 'm2'] },
-  { id: 'p2', name: 'Mobile App V2', description: 'React Native rewrite.', status: 'active', priority: 'P1', tasksCount: 45, lastEdited: '1d ago', members: ['m1', 'm2', 'm3'] },
-  { id: 'p3', name: 'Legacy API Deprecation', description: 'Shut down v1 endpoints.', status: 'archived', priority: 'P2', tasksCount: 100, lastEdited: '2w ago', members: ['m3'] },
-];
-
-const mockTasks: Task[] = [
-  { id: 't1', projectId: 'p1', title: 'Design new hero section', status: 'Done', assigneeId: 'm1', priority: 'P0', completedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-  { id: 't2', projectId: 'p1', title: 'Implement navbar', status: 'In Review', assigneeId: 'm2', priority: 'P1', dueDate: 'Today' },
-  { id: 't3', projectId: 'p2', title: 'Setup Expo router', status: 'Done', assigneeId: 'm3', priority: 'P1', completedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-  { id: 't4', projectId: 'p2', title: 'Auth screens', status: 'In Progress', assigneeId: 'm1', priority: 'P0', dueDate: 'Tomorrow' },
-  { id: 't5', projectId: 'p1', title: 'Integrate Stripe billing API', status: 'To Do', assigneeId: 'm2', priority: 'P0', dueDate: 'Tomorrow' },
-  { id: 't6', projectId: 'p1', title: 'Refactor authentication state hooks', status: 'In Progress', assigneeId: 'm2', priority: 'P1', dueDate: 'Today' },
-];
-
-const mockSnippets: Snippet[] = [
-  { id: 's1', projectId: 'p1', title: 'Auth Token Middleware', code: 'export const verifyToken = (req, res, next) => {\n  const token = req.headers.authorization?.split(" ")[1];\n  if (!token) return res.status(401).json({ error: "Unauthorized" });\n  next();\n};', language: 'TypeScript', category: 'Backend', authorId: 'm2', updatedAt: '2h ago', pinned: true },
-  { id: 's2', projectId: 'p1', title: 'Stripe Checkout Hook', code: 'export function useStripeCheckout() {\n  const initiate = async (priceId: string) => {\n    const res = await fetch("/api/checkout", { method: "POST", body: JSON.stringify({ priceId }) });\n    return res.json();\n  };\n  return { initiate };\n}', language: 'TypeScript', category: 'Frontend', authorId: 'm2', updatedAt: '1d ago', pinned: true },
-  { id: 's3', projectId: 'p1', title: 'User Profile SQL Query', code: 'SELECT id, name, email, role, joined_at\nFROM users\nWHERE id = $1 AND active = true;', language: 'SQL', category: 'Database', authorId: 'm1', updatedAt: '3d ago', pinned: false },
-];
-
-const mockDocs: Doc[] = [
-  { id: 'd1', projectId: 'p1', title: 'Architecture Overview', content: '# Architecture Overview\n\nThis project follows a clean modular structure with Fastify on the backend and React + Zustand on the frontend.\n\n## Key Components\n- **API Layer**: Fastify + Drizzle ORM\n- **State Management**: Zustand + React Query\n- **Real-time**: Socket.IO events for collaborative updates', createdBy: 'm1', updatedAt: '2h ago' },
-];
-
-const mockActivities: ActivityItem[] = [
-  { id: 'a1', projectId: 'p1', userId: 'm1', action: 'completed task "Design new hero section"', timestamp: new Date(Date.now() - 3600000).toISOString() },
-  { id: 'a2', projectId: 'p2', userId: 'm2', action: 'commented on "Auth screens"', timestamp: new Date(Date.now() - 86400000).toISOString() },
-  { id: 'a3', projectId: 'p2', userId: 'm3', action: 'created project "Mobile App V2"', timestamp: new Date(Date.now() - 3 * 86400000).toISOString() },
-];
-
-const mockNotifications: Notification[] = [
-  { id: 'n1', type: 'mention', targetUserId: 'm2', message: 'Alice mentioned you in Mobile App V2', timestamp: '5m ago', read: false, avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Alice', link: '/projects/p2' },
-  { id: 'n2', type: 'system', message: 'Bob completed "Setup Expo router"', timestamp: '2h ago', read: false, avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Bob', link: '/projects/p2' },
-  { id: 'n3', type: 'assignment', targetUserId: 'm1', message: 'You were assigned to "Auth screens"', timestamp: '1d ago', read: true, avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=SANJAY', link: '/projects/p2' },
-  { id: 'n4', type: 'announcement', message: 'Platform maintenance scheduled for tonight at 12AM', timestamp: '2d ago', read: true, avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Admin' },
-];
-
 export const useStore = create<WorkspaceState>((set, get) => ({
-  projects: mockProjects,
-  tasks: mockTasks,
-  members: mockMembers,
-  activities: mockActivities,
-  notifications: mockNotifications,
-  snippets: mockSnippets,
-  docs: mockDocs,
+  projects: [],
+  tasks: [],
+  members: [],
+  activities: [],
+  notifications: [],
+  snippets: [],
+  docs: [],
+  sprints: [],
   
   activeWorkspaceId: typeof window !== 'undefined' ? localStorage.getItem('activeWorkspaceId') : null,
 
@@ -252,11 +212,11 @@ export const useStore = create<WorkspaceState>((set, get) => ({
   transitioningProject: null,
   triggerProjectTransition: (project) => set({ transitioningProject: project }),
 
-  createTask: async (projectId, title, assigneeId, priority = 'P1', dueDate, description) => {
+  createTask: async (projectId, title, assigneeId, priority = 'P1', dueDate, description, status) => {
     try {
       const payload: any = {
         title,
-        status: 'TO_DO',
+        status: status ? toBackendStatus(status) : 'TO_DO',
         priority,
         description: description || undefined,
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
@@ -276,7 +236,7 @@ export const useStore = create<WorkspaceState>((set, get) => ({
         projectId,
         title,
         description,
-        status: 'To Do',
+        status: status ? toFrontendStatus(status) : 'To Do',
         assigneeId,
         priority,
         dueDate,

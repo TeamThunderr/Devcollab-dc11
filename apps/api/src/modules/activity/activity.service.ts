@@ -3,6 +3,7 @@ import { db } from '../../db/client.js'
 import { activityFeed, notifications, projects } from '../../db/schema.js'
 import { AppError } from '../../lib/errors.js'
 import { workspacesService } from '../workspaces/workspaces.service.js'
+import { projectsService } from '../projects/projects.service.js'
 import { emitToUser } from '../../socket/emit.js'
 
 export const activityService = {
@@ -37,10 +38,7 @@ export const activityService = {
   },
 
   async getProjectActivity(projectId: number, userId: number) {
-    const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId) })
-    if (!project) throw new AppError(404, 'NOT_FOUND', 'Project not found')
-
-    await workspacesService.checkPermission(project.workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    await projectsService.checkProjectPermission(projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER', 'VIEWER'])
 
     return await db.query.activityFeed.findMany({
       where: eq(activityFeed.projectId, projectId),

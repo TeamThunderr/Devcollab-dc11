@@ -66,7 +66,7 @@ export function ProjectLayout() {
   const profileInfo = {
     name: user?.name || "User",
     seed: user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U',
-    roleName: role === "ADMIN" ? "Admin" : role === "VIEWER" ? "Viewer" : "Member"
+    roleName: (role === "ADMIN" || role === "OWNER") ? "Admin" : role === "VIEWER" ? "Viewer" : "Member"
   };
 
   const adminNavGroups = [
@@ -153,7 +153,7 @@ export function ProjectLayout() {
     }
   ];
 
-  const navGroups = role === "ADMIN" ? adminNavGroups : role === "MEMBER" ? memberNavGroups : viewerNavGroups;
+  const navGroups = (role === "ADMIN" || role === "OWNER") ? adminNavGroups : role === "MEMBER" ? memberNavGroups : viewerNavGroups;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -270,7 +270,7 @@ export function ProjectLayout() {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              {role === "ADMIN" && (
+              {(role === "ADMIN" || role === "OWNER") && (
                 <DropdownMenuItem onClick={() => navigate("/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Workspace Settings</span>

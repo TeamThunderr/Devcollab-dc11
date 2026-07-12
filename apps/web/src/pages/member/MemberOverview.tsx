@@ -3,6 +3,9 @@ import { useStore } from "../../store/useStore";
 import { Code2, Clock, CheckCircle2, TerminalSquare, ArrowRight, GitPullRequest } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { StatsGrid } from "../../components/dashboard/StatsGrid";
+import { useRole } from "../../context/RBACContext";
+import { useAuth } from "../../context/AuthContext";
+import { toFrontendStatus } from "../../store/useStore";
 
 interface MemberOverviewProps {
   projectId?: string;
@@ -10,31 +13,33 @@ interface MemberOverviewProps {
 
 export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
-  const navigate = useNavigate();
+  const { currentUserId } = useRole();
+  const { currentUser } = useAuth();
   const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
+  const navigate = useNavigate();
   const tasks = useStore(state => state.tasks);
   const members = useStore(state => state.members);
   const snippets = useStore(state => state.snippets);
 
-  const project = projects.find(p => p.id === projectId) || projects[0];
-  const currentMemberId = 'm2'; // Alice Smith
-  const currentMember = members.find(m => m.id === currentMemberId) || members[1] || {
-    id: 'm2',
-    name: 'Alice Smith',
-    email: 'alice@acmcorp.com',
+  const project = projects.find(p => String(p.id) === String(projectId)) || projects[0];
+  const currentMember = members.find(m => String(m.id) === String(currentUserId) || Number(m.id) === Number(currentUserId) || (m.email && currentUser?.email && m.email.toLowerCase() === currentUser.email.toLowerCase())) || {
+    id: currentUserId,
+    name: currentUser?.name || 'Developer',
+    email: currentUser?.email || '',
     role: 'Member' as const,
-    joinedAt: '2026-06-01',
-    avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Alice'
+    joinedAt: new Date().toISOString(),
+    avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser?.name || 'dev'}`
   };
 
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
-  const myTasks = projectTasks.filter(t => t.assigneeId === currentMemberId || !t.assigneeId);
+  const projectTasks = tasks.filter(t => String(t.projectId) === String(projectId));
+  const myTasks = projectTasks.filter(t => t.assigneeId && (String(t.assigneeId) === String(currentUserId) || Number(t.assigneeId) === Number(currentUserId)));
   
-  const myInProgress = myTasks.filter(t => t.status === "In Progress");
+  const myInProgress = myTasks.filter(t => toFrontendStatus(t.status) === "In Progress");
   const dueToday = myTasks.filter(t => t.dueDate === "Today" || t.priority === "P0");
-  const myDone = myTasks.filter(t => t.status === "Done");
-  const completionRate = myTasks.length > 0 ? Math.round((myDone.length / myTasks.length) * 100) : 100;
+  const myDone = myTasks.filter(t => toFrontendStatus(t.status) === "Done");
+  const completionRate = myTasks.length > 0 ? Math.round((myDone.length / myTasks.length) * 100) : 0;
 
   return (
     <div className="space-y-12 pb-16">

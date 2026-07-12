@@ -16,13 +16,13 @@ export default function App() {
       <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
-            <RBACProvider>
-              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <RBACProvider>
                 <ProjectTransitionModal />
                 <AppRoutes />
                 <DevToolsPanel />
-              </BrowserRouter>
-            </RBACProvider>
+              </RBACProvider>
+            </BrowserRouter>
           </AuthProvider>
           <Toaster
             theme="system"

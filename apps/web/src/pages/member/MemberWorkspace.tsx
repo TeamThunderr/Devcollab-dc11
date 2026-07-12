@@ -3,6 +3,7 @@ import { useStore } from "../../store/useStore";
 import { Code2, TerminalSquare, FileCode, Pin, Plus, Trash2, Copy, Check, ExternalLink, GitBranch, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
+import { useRole } from "../../context/RBACContext";
 
 interface MemberWorkspaceProps {
   projectId?: string;
@@ -10,7 +11,10 @@ interface MemberWorkspaceProps {
 
 export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
+  const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
+  const { currentUserId } = useRole();
   const navigate = useNavigate();
   const snippets = useStore(state => state.snippets);
   const saveSnippet = useStore(state => state.saveSnippet);
@@ -29,12 +33,12 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
       return;
     }
     saveSnippet({
-      projectId,
+      projectId: projectId || "1",
       title: scratchTitle,
       code: scratchCode,
       language: scratchLang,
       category: "General",
-      authorId: "m2",
+      authorId: currentUserId || "1",
       pinned: false
     });
     toast.success("Snippet saved to project library!");

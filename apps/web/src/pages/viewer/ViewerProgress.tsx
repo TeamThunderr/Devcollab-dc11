@@ -1,5 +1,5 @@
 import React from "react";
-import { useStore } from "../../store/useStore";
+import { useStore, toFrontendStatus } from "../../store/useStore";
 import { TrendingUp, Award, BarChart3 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -9,25 +9,35 @@ interface ViewerProgressProps {
 
 export function ViewerProgress({ projectId: propsId }: ViewerProgressProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
+  const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
   const navigate = useNavigate();
   const tasks = useStore(state => state.tasks);
+  const sprints = useStore(state => state.sprints || []);
 
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
-  const doneTasks = projectTasks.filter(t => t.status === "Done");
-  const inProgressTasks = projectTasks.filter(t => t.status === "In Progress");
-  const todoTasks = projectTasks.filter(t => t.status === "To Do" || t.status === "In Review");
+  const projectTasks = tasks.filter(t => String(t.projectId) === String(projectId));
+  const doneTasks = projectTasks.filter(t => toFrontendStatus(t.status) === "Done");
+  const inProgressTasks = projectTasks.filter(t => toFrontendStatus(t.status) === "In Progress");
+  const todoTasks = projectTasks.filter(t => toFrontendStatus(t.status) === "To Do" || toFrontendStatus(t.status) === "In Review");
 
   const total = projectTasks.length || 1;
   const donePct = Math.round((doneTasks.length / total) * 100);
   const inProgressPct = Math.round((inProgressTasks.length / total) * 100);
   const todoPct = 100 - donePct - inProgressPct;
 
-  const milestones = [
-    { name: "Sprint 11: Core Infrastructure & API Foundation", status: "Completed", pct: 100, date: "June 15" },
-    { name: "Sprint 12: Role-Based Workspaces & UX Polish", status: "In Progress", pct: 85, date: "July 10" },
-    { name: "Sprint 13: Advanced Analytics & AI Automation", status: "Planned", pct: 0, date: "July 30" },
-  ];
+  const projectSprints = sprints.filter((s: any) => String(s.projectId) === String(projectId));
+  const milestones = projectSprints.map((s: any) => {
+    const sTasks = projectTasks.filter(t => t.sprintId === s.id);
+    const sDone = sTasks.filter(t => toFrontendStatus(t.status) === "Done");
+    const pct = sTasks.length > 0 ? Math.round((sDone.length / sTasks.length) * 100) : 0;
+    return {
+      name: s.name,
+      status: s.status === 'COMPLETED' ? "Completed" : s.status === 'ACTIVE' ? "In Progress" : "Planned",
+      pct,
+      date: s.endDate ? new Date(s.endDate).toLocaleDateString() : "Upcoming"
+    };
+  });
 
   return (
     <div className="space-y-10 pb-16 max-w-7xl mx-auto px-6 sm:px-8 md:px-12 w-full py-10">
@@ -113,32 +123,38 @@ export function ViewerProgress({ projectId: propsId }: ViewerProgressProps = {})
         </div>
 
         <div className="space-y-4">
-          {milestones.map((ms, i) => (
-            <div key={i} className="p-5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-1 rounded text-[10px] font-semibold uppercase border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-gray-700 dark:text-gray-300">
-                    {ms.status}
-                  </span>
-                  <span className="font-semibold text-sm text-gray-900 dark:text-white">{ms.name}</span>
-                </div>
-                <span className="text-xs font-medium text-gray-500">Target: {ms.date}</span>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="text-gray-600 dark:text-gray-400">Completion</span>
-                  <span className="text-gray-900 dark:text-white font-semibold">{ms.pct}%</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-[#2C2C2C] h-1.5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full rounded-full bg-gray-900 dark:bg-white" 
-                    style={{ width: `${ms.pct}%` }} 
-                  />
-                </div>
-              </div>
+          {milestones.length === 0 ? (
+            <div className="p-8 rounded-lg border border-dashed border-gray-200 dark:border-[#2C2C2C] text-center text-gray-500 text-sm">
+              No sprint milestones defined for this project yet.
             </div>
-          ))}
+          ) : (
+            milestones.map((ms: any, i: number) => (
+              <div key={i} className="p-5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="px-2.5 py-1 rounded text-[10px] font-semibold uppercase border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-gray-700 dark:text-gray-300">
+                      {ms.status}
+                    </span>
+                    <span className="font-semibold text-sm text-gray-900 dark:text-white">{ms.name}</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-500">Target: {ms.date}</span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-gray-600 dark:text-gray-400">Completion</span>
+                    <span className="text-gray-900 dark:text-white font-semibold">{ms.pct}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-[#2C2C2C] h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full bg-gray-900 dark:bg-white" 
+                      style={{ width: `${ms.pct}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

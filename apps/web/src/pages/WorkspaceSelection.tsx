@@ -8,6 +8,7 @@ import { useStore } from "../store/useStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeContext } from "../context/ThemeContext";
 import { CreateWorkspaceModal } from "../components/common/CreateWorkspaceModal";
+import { JoinWorkspaceModal } from "../components/common/JoinWorkspaceModal";
 
 export function WorkspaceSelection() {
   const { currentUser } = useAuth();
@@ -20,22 +21,10 @@ export function WorkspaceSelection() {
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
   const filteredWorkspaces = workspaces?.filter(w => 
     w.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
-
-  // Auto-generate slug from workspace name
-  useEffect(() => {
-    if (createName) {
-      const generated = createName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-      setCreateSlug(generated);
-    } else {
-      setCreateSlug("");
-    }
-  }, [createName]);
 
   const handleOpenWorkspace = (workspace: WorkspaceMy) => {
     setActiveWorkspace(workspace.id);
@@ -46,7 +35,7 @@ export function WorkspaceSelection() {
     navigate("/dashboard");
   };
 
-  const handleCreateWorkspaceClick = () => {
+  const handleCreateWorkspace = () => {
     if (currentUser?.plan === 'FREE' && workspaces && workspaces.some(w => w.role === 'OWNER')) {
       alert("Free plan users can only own one workspace. Please upgrade to Pro to create more.");
       return;
@@ -54,27 +43,8 @@ export function WorkspaceSelection() {
     setIsCreateOpen(true);
   };
 
-  const handleJoinSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanSlug = joinSlugInput.trim().split("/").pop() || "";
-    if (!cleanSlug) {
-      setJoinError("Please enter a valid workspace slug or invitation link");
-      return;
-    }
-    setJoinError("");
-    try {
-      const res = await joinWorkspaceMutation.mutateAsync(cleanSlug);
-      setIsJoinModalOpen(false);
-      if (res.workspaceId) {
-        setActiveWorkspace(res.workspaceId);
-      }
-      await queryClient.invalidateQueries({ queryKey: ["my-workspaces"] });
-      window.dispatchEvent(new Event("workspace:changed"));
-      navigate("/dashboard");
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to join workspace. Invalid slug or invitation.";
-      setJoinError(msg);
-    }
+  const handleJoinWorkspace = () => {
+    setIsJoinOpen(true);
   };
 
   if (isLoading) {
@@ -134,6 +104,7 @@ export function WorkspaceSelection() {
         </motion.div>
         
         <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+        <JoinWorkspaceModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
       </div>
     );
   }
@@ -262,6 +233,7 @@ export function WorkspaceSelection() {
       </div>
 
       <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <JoinWorkspaceModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
     </div>
   );
 }

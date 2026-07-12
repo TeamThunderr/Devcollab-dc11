@@ -5,7 +5,7 @@ import { UserPlus, Crown, MoreHorizontal, Search, Check, Link as LinkIcon, Trash
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useWorkspaces } from "../hooks/useWorkspaces";
-import { useProjects } from "../hooks/useProjects";
+import { useProjects, useProjectMembers, useAddProjectMember, useRemoveProjectMember, useUpdateProjectMemberRole } from "../hooks/useProjects";
 import { useTasks } from "../hooks/useTasks";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../components/ui/DropdownMenu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "../components/ui/Dialog";
@@ -30,6 +30,10 @@ export function Members() {
   const { data: projects = [] } = useProjects(workspaceId);
   const parsedId = parseInt(projectId || "0", 10);
   const { data: tasks = [] } = useTasks(parsedId || undefined);
+  const { data: projectMembersList = [] } = useProjectMembers(parsedId || undefined);
+  const addProjectMemberMutation = useAddProjectMember();
+  const removeProjectMemberMutation = useRemoveProjectMember();
+  const updateProjectMemberRoleMutation = useUpdateProjectMemberRole();
   
   const members = useStore(state => state.members);
   const updateMemberRole = useStore(state => state.updateMemberRole);
@@ -49,6 +53,10 @@ export function Members() {
   const [inviteName, setInviteName] = useState("");
   const [inviteRole, setInviteRole] = useState("Member");
   const [isInviting, setIsInviting] = useState(false);
+
+  const [isAddProjectMemberOpen, setIsAddProjectMemberOpen] = useState(false);
+  const [selectedAddUserId, setSelectedAddUserId] = useState<string>("");
+  const [selectedAddRole, setSelectedAddRole] = useState<string>("MEMBER");
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +94,28 @@ export function Members() {
     }
   };
 
+  const handleAddProjectMemberSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAddUserId) {
+      toast.error("Please select a workspace member to add.");
+      return;
+    }
+    addProjectMemberMutation.mutate(
+      { projectId: parsedId, userId: Number(selectedAddUserId), role: selectedAddRole },
+      {
+        onSuccess: () => {
+          toast.success("Member assigned to project with role: " + selectedAddRole);
+          setIsAddProjectMemberOpen(false);
+          setSelectedAddUserId("");
+          setSelectedAddRole("MEMBER");
+        },
+        onError: (err: any) => {
+          toast.error(err?.message || "Failed to assign project member.");
+        }
+      }
+    );
+  };
+
   const filteredMembers = members.filter(m =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -98,50 +128,70 @@ export function Members() {
         <div className="flex items-start justify-between">
           <div className="space-y-3">
             <h1 className="text-[2.5rem] font-bold tracking-[-0.03em] text-gray-900 dark:text-gray-100 leading-tight">
-              Team Members
+              {parsedId > 0 ? `Project Access (${projects.find(p => p.id === parsedId)?.name || 'Project'})` : 'Team Members'}
             </h1>
             <p className="text-gray-500 text-[0.9rem]">
-              {members.length} members in <span className="text-gray-900 dark:text-gray-100 font-medium">{workspace.name}</span>
+              {parsedId > 0 ? (
+                <>
+                  <span className="text-gray-900 dark:text-gray-100 font-medium">{projectMembersList.length}</span> assigned to this project out of <span className="text-gray-900 dark:text-gray-100 font-medium">{members.length}</span> workspace members.
+                </>
+              ) : (
+                <>
+                  {members.length} members in <span className="text-gray-900 dark:text-gray-100 font-medium">{workspace.name}</span>
+                </>
+              )}
             </p>
           </div>
 
           {perms.canManageMembers && (
             <div className="flex items-center gap-3 mt-2">
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-2 bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#2C2C2C] px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-[#2C2C2C]/50 transition-colors shadow-sm w-[160px] justify-center relative overflow-hidden"
-              >
-                <AnimatePresence mode="wait">
-                  {isCopied ? (
-                    <motion.div
-                      key="copied"
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -10, opacity: 0 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Check className="w-4 h-4 text-green-500" />
-                      Copied!
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="copy"
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -10, opacity: 0 }}
-                      className="flex items-center gap-2"
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                      Copy Invite Link
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </button>
+              {parsedId > 0 ? (
+                <button
+                  onClick={() => setIsAddProjectMemberOpen(true)}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  + Add Member to Project
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-2 bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#2C2C2C] px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-[#2C2C2C]/50 transition-colors shadow-sm w-[160px] justify-center relative overflow-hidden"
+                  >
+                    <AnimatePresence mode="wait">
+                      {isCopied ? (
+                        <motion.div
+                          key="copied"
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -10, opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check className="w-4 h-4 text-green-500" />
+                          Copied!
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="copy"
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -10, opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <LinkIcon className="w-4 h-4" />
+                          Copy Invite Link
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </button>
 
-              <button onClick={() => setIsInviteOpen(true)} className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity shadow-sm">
-                <UserPlus className="w-4 h-4" />
-                Invite Member
-              </button>
+                  <button onClick={() => setIsInviteOpen(true)} className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity shadow-sm">
+                    <UserPlus className="w-4 h-4" />
+                    Invite Member
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -162,9 +212,9 @@ export function Members() {
         <div className="border-t border-gray-200 dark:border-[#2C2C2C]">
           <div className="grid grid-cols-12 gap-4 pb-3 border-b border-gray-200 dark:border-[#2C2C2C] text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em] mt-8">
             <div className="col-span-5">User</div>
-            <div className="col-span-3">Role</div>
-            <div className="col-span-3">Joined</div>
-            <div className="col-span-1 text-right">Actions</div>
+            <div className="col-span-3">{parsedId > 0 ? "Project Status" : "Role"}</div>
+            <div className="col-span-2">Joined</div>
+            <div className="col-span-2 text-right">{parsedId > 0 ? "Project Access" : "Actions"}</div>
           </div>
 
           <div className="divide-y divide-gray-100 dark:divide-[#2C2C2C]">
@@ -191,7 +241,50 @@ export function Members() {
                 </div>
 
                 <div className="col-span-3 flex items-center" onClick={(e) => e.stopPropagation()}>
-                  {member.role === 'Owner' || member.name === profile?.name ? (
+                  {parsedId > 0 ? (
+                    (() => {
+                      const pm = projectMembersList.find((pm: any) => Number(pm.id) === Number(member.id) || Number(pm.userId) === Number(member.id) || (pm.email && member.email && pm.email.toLowerCase() === member.email.toLowerCase()));
+                      const isAssigned = Boolean(pm);
+                      const pmRole = pm?.role || 'MEMBER';
+                      return isAssigned ? (
+                        perms.canManageMembers && member.role !== 'Owner' ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
+                                Assigned ({pmRole})
+                                <span className="text-[10px]">▼</span>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              {['ADMIN', 'MEMBER', 'VIEWER'].map(r => (
+                                <DropdownMenuItem
+                                  key={r}
+                                  onClick={() => {
+                                    updateProjectMemberRoleMutation.mutate({
+                                      projectId: parsedId,
+                                      userId: Number(member.id),
+                                      role: r
+                                    });
+                                    toast.success(`Project role updated to ${r}`);
+                                  }}
+                                >
+                                  {r}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+                            Assigned ({pmRole})
+                          </span>
+                        )
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60">
+                          No Project Access
+                        </span>
+                      );
+                    })()
+                  ) : member.role === 'Owner' || member.name === profile?.name ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[#2C2C2C]/50 border border-gray-200 dark:border-gray-700">
                       {member.role === 'Owner' && <Crown className="w-3 h-3 text-amber-500" />}
                       {member.role}
@@ -229,24 +322,52 @@ export function Members() {
                   )}
                 </div>
 
-                <div className="col-span-3 flex items-center text-xs text-gray-500">
+                <div className="col-span-2 flex items-center text-xs text-gray-500">
                   {new Date(member.joinedAt || member.createdAt || Date.now()).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                 </div>
 
-                <div className="col-span-1 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-                  {perms.canManageMembers && member.role !== 'Owner' && member.name !== profile?.name && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[#2C2C2C] text-gray-400 opacity-0 group-hover:opacity-100 transition-all">
-                          <MoreHorizontal className="w-4 h-4" />
+                <div className="col-span-2 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                  {parsedId > 0 && perms.canManageMembers && member.role !== 'Owner' ? (
+                    (() => {
+                      const isAssigned = projectMembersList.some((pm: any) => Number(pm.id) === Number(member.id) || Number(pm.userId) === Number(member.id) || (pm.email && member.email && pm.email.toLowerCase() === member.email.toLowerCase()));
+                      return isAssigned ? (
+                        <button
+                          disabled={removeProjectMemberMutation.isPending}
+                          onClick={() => {
+                            removeProjectMemberMutation.mutate({ projectId: parsedId, userId: Number(member.id) });
+                            toast.success(`Removed ${member.name} from project access.`);
+                          }}
+                          className="px-2.5 py-1 rounded text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                        >
+                          Remove Access
                         </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-600" onClick={() => setMemberToRemove(member)}>
-                          <Trash className="w-4 h-4 mr-2" /> Remove from workspace
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedAddUserId(String(member.id));
+                            setIsAddProjectMemberOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+                        >
+                          + Assign to Project
+                        </button>
+                      );
+                    })()
+                  ) : (
+                    perms.canManageMembers && member.role !== 'Owner' && member.name !== profile?.name && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[#2C2C2C] text-gray-400 opacity-0 group-hover:opacity-100 transition-all">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-600" onClick={() => setMemberToRemove(member)}>
+                            <Trash className="w-4 h-4 mr-2" /> Remove from workspace
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )
                   )}
                 </div>
               </div>
@@ -331,6 +452,77 @@ export function Members() {
                 Remove
               </button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Project Member Dialog */}
+        <Dialog open={isAddProjectMemberOpen} onOpenChange={setIsAddProjectMemberOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Member to Project</DialogTitle>
+              <DialogDescription>
+                Select a workspace member to assign to this project and pick their project-specific role.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddProjectMemberSubmit} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase">Select Workspace Member</label>
+                <select
+                  value={selectedAddUserId}
+                  onChange={e => setSelectedAddUserId(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-md text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gray-400"
+                >
+                  <option value="">-- Choose Member --</option>
+                  {members
+                    .filter(m => !projectMembersList.some((pm: any) => Number(pm.id) === Number(m.id) || Number(pm.userId) === Number(m.id) || (pm.email && m.email && pm.email.toLowerCase() === m.email.toLowerCase())))
+                    .map(m => (
+                      <option key={m.id} value={String(m.id)}>
+                        {m.name} ({m.email})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase">Project Role</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { role: 'ADMIN', label: 'Admin', desc: 'Full control over project tasks, settings, and members.' },
+                    { role: 'MEMBER', label: 'Member', desc: 'Can create/edit tasks and code, participate in chat.' },
+                    { role: 'VIEWER', label: 'Viewer', desc: 'Read-only access to tasks, code, and chat.' }
+                  ].map(item => (
+                    <button
+                      type="button"
+                      key={item.role}
+                      onClick={() => setSelectedAddRole(item.role)}
+                      className={`p-3 rounded-lg border text-left flex flex-col gap-1 transition-all ${
+                        selectedAddRole === item.role
+                          ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-900 dark:text-indigo-100'
+                          : 'border-gray-200 dark:border-[#2C2C2C] bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#191919]'
+                      }`}
+                    >
+                      <span className="font-semibold text-xs">{item.label}</span>
+                      <span className="text-[10px] text-gray-500 leading-tight">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <DialogClose asChild>
+                  <button type="button" className="px-4 py-2 rounded-md border border-gray-200 dark:border-[#2C2C2C] text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#191919] transition-colors">
+                    Cancel
+                  </button>
+                </DialogClose>
+                <button
+                  type="submit"
+                  disabled={!selectedAddUserId || addProjectMemberMutation.isPending}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                >
+                  Add to Project
+                </button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
 

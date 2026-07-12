@@ -136,10 +136,24 @@ export const projectsService = {
 
   async getProjects(workspaceId: number, userId: number) {
     // Any member of the workspace can view workspace projects they have access to or check list
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    const wsMember = await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+
+    let whereClause: any = eq(projects.workspaceId, workspaceId)
+    if (wsMember.role !== 'OWNER' && wsMember.role !== 'ADMIN') {
+      const myProjectMembers = await db
+        .select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(eq(projectMembers.userId, userId))
+
+      const myProjectIds = myProjectMembers.map((pm) => pm.projectId)
+      if (myProjectIds.length === 0) {
+        return []
+      }
+      whereClause = and(eq(projects.workspaceId, workspaceId), inArray(projects.id, myProjectIds))
+    }
 
     const workspaceProjects = await db.query.projects.findMany({
-      where: eq(projects.workspaceId, workspaceId),
+      where: whereClause,
       orderBy: desc(projects.createdAt),
     })
 

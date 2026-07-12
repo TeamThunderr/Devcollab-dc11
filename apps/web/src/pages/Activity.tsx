@@ -93,7 +93,7 @@ export function Activity() {
       setIsTaskModalOpen(true);
     } else {
       // Create a dummy task with just title to show detail modal cleanly
-      setSelectedTaskForModal({ title: taskTitle, projectId: projectId || projects[0]?.id || 'p1', description: "Log detail reference" });
+      setSelectedTaskForModal({ title: taskTitle, projectId: projectId || projects[0]?.id || '1', description: "Log detail reference" });
       setIsTaskModalOpen(true);
     }
   };
@@ -156,7 +156,7 @@ export function Activity() {
   };
 
   const mergedActivities = projectId 
-    ? [...projectActivity, ...storeActivities.filter(a => String(a.projectId) === String(projectId) || String(a.projectId) === 'p1')]
+    ? [...projectActivity, ...storeActivities.filter(a => String(a.projectId) === String(projectId))]
     : [...workspaceActivity, ...storeActivities];
 
   // Deduplicate by ID and sort descending
@@ -196,7 +196,7 @@ export function Activity() {
       if (role === 'MEMBER' && act.userId?.toString() !== currentUserId?.toString()) return false;
       
       // Project filtering
-      if (projectId && act.projectId?.toString() !== projectId.toString() && act.projectId !== 'p1') return false;
+      if (projectId && act.projectId?.toString() !== projectId.toString()) return false;
       if (!projectId && projectFilter !== 'All Projects' && act.projectId?.toString() !== projectFilter.toString()) return false;
 
       // Action type filtering
@@ -608,18 +608,14 @@ export function Activity() {
                 <div className="space-y-3">
                   <AnimatePresence initial={false}>
                     {items.map(act => {
-                      const member: any = allMembers.find(m => String(m.id) === String(act.userId)) || 
-                                     (String(act.userId) === 'm1' ? { name: 'Sanjay Balan', avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=SANJAY' } : null) ||
-                                     (String(act.userId) === 'm2' ? { name: 'Alice Smith', avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Alice' } : null) ||
-                                     (String(act.userId) === 'm3' ? { name: 'Bob Johnson', avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Bob' } : null) ||
-                                     (String(act.userId) === 'US' || String(act.userId) === 'u1' || String(act.userId) === 'owner' ? (profile || { name: 'libin (OWNER)', avatarUrl: (profile as any)?.avatarUrl }) : null);
-                      const resolvedName = member?.name || act.userName || (String(act.userId) === 'US' ? (profile?.name || 'libin (OWNER)') : 'libin (OWNER)');
+                      const member: any = allMembers.find(m => String(m.id) === String(act.userId) || Number(m.id) === Number(act.userId)) || act.user || { name: act.userName || 'Team Member', avatarUrl: `https://api.dicebear.com/7.x/notionists/svg?seed=${act.userName || 'member'}` };
+                      const resolvedName = member?.name || act.userName || 'Team Member';
                       const project = projects.find(p => p.id === act.projectId || String(p.id) === String(act.projectId));
                       const isNew = new Date().getTime() - new Date(act.createdAt || act.timestamp || Date.now()).getTime() < 5000;
                       const actionText = act.actionType || act.action || 'performed an action';
                       const actDate = new Date(act.createdAt || act.timestamp || Date.now());
                       const timeString = actDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const isCurrentProject = project && (String(projectId) === String(project.id) || (projectId === undefined && String(project.id) === 'p1'));
+                      const isCurrentProject = project && (String(projectId) === String(project.id) || (projectId === undefined && String(project.id) === String(projects[0]?.id)));
 
                       return (
                         <motion.div
@@ -824,7 +820,7 @@ export function Activity() {
           setSelectedTaskForModal(null);
         }}
         mode="detail"
-        projectId={projectId || selectedTaskForModal?.projectId || projects[0]?.id || 'p1'}
+        projectId={projectId || selectedTaskForModal?.projectId || projects[0]?.id || '1'}
         task={selectedTaskForModal}
       />
     </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "../../store/useStore";
+import { useStore, toFrontendStatus } from "../../store/useStore";
 import { useRole } from "../../context/RBACContext";
 import { GreetingSection } from "./GreetingSection";
 import { StatsGrid } from "./StatsGrid";
@@ -17,10 +17,10 @@ export function MemberDashboard() {
   const activities = useStore(state => state.activities);
   
   // Calculate stats
-  const memberTasks = tasks.filter(t => t.assigneeId === currentUserId);
-  const pendingTasks = memberTasks.filter(t => t.status !== 'Done');
-  const completedTasks = memberTasks.filter(t => t.status === 'Done');
-  const memberProjects = projects.filter(p => Array.isArray(p.members) ? p.members.includes(currentUserId) : true);
+  const memberTasks = tasks.filter(t => t.assigneeId && (String(t.assigneeId) === String(currentUserId) || Number(t.assigneeId) === Number(currentUserId)));
+  const pendingTasks = memberTasks.filter(t => toFrontendStatus(t.status) !== 'Done');
+  const completedTasks = memberTasks.filter(t => toFrontendStatus(t.status) === 'Done');
+  const memberProjects = projects.filter(p => Array.isArray(p.members) ? p.members.includes(String(currentUserId)) || p.members.includes(Number(currentUserId)) : true);
   
   // Top 5 pending tasks
   const topPendingTasks = pendingTasks.slice(0, 5);

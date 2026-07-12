@@ -3,6 +3,7 @@ import { db } from '../../db/client.js'
 import { projects, sprints } from '../../db/schema.js'
 import { AppError } from '../../lib/errors.js'
 import { workspacesService } from '../workspaces/workspaces.service.js'
+import { projectsService } from '../projects/projects.service.js'
 import { activityService } from '../activity/activity.service.js'
 import { emitToProject } from '../../socket/emit.js'
 import type { CreateSprintInput, UpdateSprintInput } from './sprints.schema.js'
@@ -15,8 +16,7 @@ export const sprintsService = {
   },
 
   async createSprint(projectId: number, userId: number, data: CreateSprintInput) {
-    const workspaceId = await this.getProjectWorkspaceId(projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER'])
+    await projectsService.checkProjectPermission(projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
 
     const [sprint] = await db
       .insert(sprints)
@@ -32,6 +32,7 @@ export const sprintsService = {
 
     if (!sprint) throw new AppError(500, 'INTERNAL_SERVER_ERROR', 'Failed to create sprint')
 
+    const workspaceId = await this.getProjectWorkspaceId(projectId)
     activityService.logActivity({
       workspaceId,
       projectId,
@@ -50,8 +51,7 @@ export const sprintsService = {
   },
 
   async getSprints(projectId: number, userId: number) {
-    const workspaceId = await this.getProjectWorkspaceId(projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    await projectsService.checkProjectPermission(projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER', 'VIEWER'])
 
     return await db.query.sprints.findMany({
       where: eq(sprints.projectId, projectId),
@@ -63,8 +63,7 @@ export const sprintsService = {
     const sprint = await db.query.sprints.findFirst({ where: eq(sprints.id, sprintId) })
     if (!sprint) throw new AppError(404, 'NOT_FOUND', 'Sprint not found')
 
-    const workspaceId = await this.getProjectWorkspaceId(sprint.projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    await projectsService.checkProjectPermission(sprint.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER', 'VIEWER'])
 
     return sprint
   },
@@ -73,8 +72,7 @@ export const sprintsService = {
     const sprint = await db.query.sprints.findFirst({ where: eq(sprints.id, sprintId) })
     if (!sprint) throw new AppError(404, 'NOT_FOUND', 'Sprint not found')
 
-    const workspaceId = await this.getProjectWorkspaceId(sprint.projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER'])
+    await projectsService.checkProjectPermission(sprint.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
 
     const updateData: any = { ...data }
     if (data.startDate) updateData.startDate = new Date(data.startDate)
@@ -89,6 +87,7 @@ export const sprintsService = {
 
     if (!updated) throw new AppError(404, 'NOT_FOUND', 'Sprint not found')
 
+    const workspaceId = await this.getProjectWorkspaceId(sprint.projectId)
     activityService.logActivity({
       workspaceId,
       projectId: sprint.projectId,
@@ -110,8 +109,7 @@ export const sprintsService = {
     const sprint = await db.query.sprints.findFirst({ where: eq(sprints.id, sprintId) })
     if (!sprint) throw new AppError(404, 'NOT_FOUND', 'Sprint not found')
 
-    const workspaceId = await this.getProjectWorkspaceId(sprint.projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER'])
+    await projectsService.checkProjectPermission(sprint.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
 
     await db.delete(sprints).where(eq(sprints.id, sprintId))
 

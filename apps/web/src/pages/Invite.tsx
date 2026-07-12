@@ -4,9 +4,14 @@ import { api } from '../lib/api';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useStore } from '../store/useStore';
+import { useQueryClient } from '@tanstack/react-query';
+
 export function Invite() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { setActiveWorkspace } = useStore();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +27,12 @@ export function Invite() {
     setError('');
     
     try {
-      await api.post(`/api/workspaces/join/${slug}`, { code });
+      const { data } = await api.post<{ workspaceId?: number }>(`/api/workspaces/join/${slug}`, { code });
+      if (data?.workspaceId) {
+        setActiveWorkspace(data.workspaceId);
+      }
+      await queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
+      window.dispatchEvent(new Event('workspace:changed'));
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to join workspace. Invalid or expired code.');
