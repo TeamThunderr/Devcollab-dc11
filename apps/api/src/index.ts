@@ -44,6 +44,13 @@ const app = Fastify({
 app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
 
+// Disable browser/proxy caching for API responses to ensure real-time role & data updates in production
+app.addHook('onSend', async (_request, reply, _payload) => {
+  reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  reply.header('Pragma', 'no-cache')
+  reply.header('Expires', '0')
+})
+
 // ── Global error handler — Fault Control ─────────────────────────────────────
 app.setErrorHandler((error, _request, reply) => {
   if (error instanceof AppError) {

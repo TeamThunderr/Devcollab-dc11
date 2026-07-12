@@ -13,7 +13,7 @@ import { useStore } from "../../store/useStore";
 
 export function GreetingSection({ projectId }: { projectId?: string }) {
   const navigate = useNavigate();
-  const { role } = useRole();
+  const { role, permissions } = useRole();
   const perms = getProjectPermissions(role);
   
   const { currentUser } = useAuth();
@@ -110,13 +110,15 @@ export function GreetingSection({ projectId }: { projectId?: string }) {
           <Sparkles className="w-4 h-4" />
           Ask AI
         </button>
-        <button 
-          onClick={() => navigate(`/projects`)}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          New Project
-        </button>
+        {permissions?.canCreateProject && (
+          <button 
+            onClick={() => navigate(`/projects`)}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            New Project
+          </button>
+        )}
       </div>
     </div>
   );

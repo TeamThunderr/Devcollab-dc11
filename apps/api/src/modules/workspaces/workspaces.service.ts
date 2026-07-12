@@ -193,7 +193,7 @@ export const workspacesService = {
       throw new AppError(403, 'FORBIDDEN', 'Access denied')
     }
 
-    if (!requiredRoles.includes(member.role)) {
+    if (!requiredRoles.map(r => r.toUpperCase()).includes(member.role.toUpperCase())) {
       throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions')
     }
 
@@ -217,6 +217,7 @@ export const workspacesService = {
       throw new AppError(500, 'INTERNAL_SERVER_ERROR', 'Failed to add member')
     }
 
+    emitToWorkspace(workspaceId, 'member:added', { userId: data.userId, role: data.role });
     return member
   },
 
@@ -226,13 +227,30 @@ export const workspacesService = {
     updaterId: number,
     data: UpdateMemberRoleInput
   ) {
-    // Only OWNER can change roles to ADMIN or OWNER. 
-    // ADMIN can only change roles to MEMBER or VIEWER (simplified check: just require OWNER for now)
-    await this.checkPermission(workspaceId, updaterId, ['OWNER'])
+    const updaterMember = await this.checkPermission(workspaceId, updaterId, ['OWNER', 'ADMIN'])
+
+    // Fetch target to prevent ADMIN from changing an OWNER's role
+    const [targetMember] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.userId, targetUserId)
+        )
+      )
+
+    if (!targetMember) {
+      throw new AppError(404, 'NOT_FOUND', 'Member not found')
+    }
+
+    if (targetMember.role === 'OWNER' && updaterMember.role !== 'OWNER') {
+      throw new AppError(403, 'FORBIDDEN', 'Only the workspace owner can modify an owner role')
+    }
 
     const [member] = await db
       .update(workspaceMembers)
-      .set({ role: data.role })
+      .set({ role: data.role.toUpperCase() as any })
       .where(
         and(
           eq(workspaceMembers.workspaceId, workspaceId),
@@ -241,10 +259,9 @@ export const workspacesService = {
       )
       .returning()
 
-    if (!member) {
-      throw new AppError(404, 'NOT_FOUND', 'Member not found')
+    if (member) {
+      emitToWorkspace(workspaceId, 'member:updated', { userId: targetUserId, role: member.role });
     }
-
     return member
   },
 
@@ -267,6 +284,7 @@ export const workspacesService = {
       .returning()
 
     if (!deletedMember) throw new AppError(404, 'NOT_FOUND', 'Member not found')
+    emitToWorkspace(workspaceId, 'member:removed', { userId: targetUserId });
     return { success: true }
   },
 

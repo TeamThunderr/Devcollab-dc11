@@ -66,6 +66,8 @@ export interface WorkspaceMember {
   avatarUrl?: string | null;
   role: string;
   joinedAt: string;
+  createdAt?: string;
+  status?: string;
 }
 
 export function useWorkspaceMembers(workspaceId: number | undefined) {
@@ -73,7 +75,11 @@ export function useWorkspaceMembers(workspaceId: number | undefined) {
     queryKey: ['workspace-members', workspaceId],
     queryFn: async () => {
       const { data } = await api.get<WorkspaceMember[]>(`/api/workspaces/${workspaceId}/members`);
-      return data;
+      return data.map(m => ({
+        ...m,
+        status: (m as any).status || 'Active',
+        createdAt: (m as any).createdAt || m.joinedAt
+      }));
     },
     enabled: !!workspaceId,
   });

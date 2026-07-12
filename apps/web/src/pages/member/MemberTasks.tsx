@@ -102,77 +102,80 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredTasks.map(task => (
-              <div 
-                key={task.id} 
-                onClick={() => setSelectedTask(task)}
-                className="p-6 rounded-lg border border-gray-200 dark:border-[#2C2C2C] transition-all flex flex-col justify-between gap-5 bg-white dark:bg-[#191919] shadow-sm hover:shadow-md cursor-pointer group"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-bold text-base text-gray-900 dark:text-white leading-snug group-hover:underline">
-                      {task.title}
-                    </h3>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 shrink-0">
-                      {task.priority || "P1"}
-                    </span>
+            {filteredTasks.map((task) => {
+              const frontendStatus = toFrontendStatus(task.status);
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => setSelectedTask(task)}
+                  className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-xl p-6 shadow-2xs hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between space-y-6"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-bold text-base text-gray-900 dark:text-white leading-snug group-hover:underline">
+                        {task.title}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 shrink-0">
+                        {task.priority || "P1"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                      {task.dueDate && (
+                        <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2C2C2C] px-2 py-0.5 rounded border border-gray-200 dark:border-[#2C2C2C]">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" /> Due: {task.dueDate}
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 font-medium text-xs border border-gray-200 dark:border-[#2C2C2C]">
+                        Status: {frontendStatus}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
-                    {task.dueDate && (
-                      <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2C2C2C] px-2 py-0.5 rounded border border-gray-200 dark:border-[#2C2C2C]">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" /> Due: {task.dueDate}
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 font-medium text-xs border border-gray-200 dark:border-[#2C2C2C]">
-                      Status: {task.status}
-                    </span>
+                  {/* One-Click Workflow Status Transitions & IDE Jump */}
+                  <div className="pt-4 border-t border-gray-200 dark:border-[#2C2C2C] flex items-center justify-between gap-3" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => navigate(`/projects/${projectId}/editor`)}
+                      className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
+                    >
+                      <TerminalSquare className="w-3.5 h-3.5" /> Open Code IDE
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {frontendStatus === "To Do" && (
+                        <button
+                          onClick={(e) => handleQuickStatus(task.id, "In Progress", task.title, e)}
+                          className="px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs transition-opacity hover:opacity-90 shadow-sm flex items-center gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5" /> Start Task
+                        </button>
+                      )}
+                      {frontendStatus === "In Progress" && (
+                        <button
+                          onClick={(e) => handleQuickStatus(task.id, "In Review", task.title, e)}
+                          className="px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs transition-opacity hover:opacity-90 shadow-sm flex items-center gap-1.5"
+                        >
+                          <GitPullRequest className="w-3.5 h-3.5" /> Ready for Review
+                        </button>
+                      )}
+                      {frontendStatus !== "Done" && (
+                        <button
+                          onClick={(e) => handleQuickStatus(task.id, "Done", task.title, e)}
+                          className="px-3 py-1.5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] text-gray-900 dark:text-gray-100 font-medium text-xs transition-all shadow-sm flex items-center gap-1.5"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Mark Completed
+                        </button>
+                      )}
+                      {frontendStatus === "Done" && (
+                        <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1 bg-gray-100 dark:bg-[#2C2C2C] px-3 py-1 rounded-md border border-gray-200 dark:border-[#2C2C2C]">
+                          <CheckCheck className="w-4 h-4" /> Completed
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* One-Click Workflow Status Transitions & IDE Jump */}
-                <div className="pt-4 border-t border-gray-200 dark:border-[#2C2C2C] flex items-center justify-between gap-3" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => navigate(`/projects/${projectId}/editor`)}
-                    className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
-                  >
-                    <TerminalSquare className="w-3.5 h-3.5" /> Open Code IDE
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {task.status === "To Do" && (
-                      <button
-                        onClick={(e) => handleQuickStatus(task.id, "In Progress", task.title, e)}
-                        className="px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs transition-opacity hover:opacity-90 shadow-sm flex items-center gap-1.5"
-                      >
-                        <Play className="w-3.5 h-3.5" /> Start Task
-                      </button>
-                    )}
-                    {task.status === "In Progress" && (
-                      <button
-                        onClick={(e) => handleQuickStatus(task.id, "In Review", task.title, e)}
-                        className="px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs transition-opacity hover:opacity-90 shadow-sm flex items-center gap-1.5"
-                      >
-                        <GitPullRequest className="w-3.5 h-3.5" /> Ready for Review
-                      </button>
-                    )}
-                    {task.status !== "Done" && (
-                      <button
-                        onClick={(e) => handleQuickStatus(task.id, "Done", task.title, e)}
-                        className="px-3 py-1.5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] text-gray-900 dark:text-gray-100 font-medium text-xs transition-all shadow-sm flex items-center gap-1.5"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Mark Completed
-                      </button>
-                    )}
-                    {task.status === "Done" && (
-                      <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1 bg-gray-100 dark:bg-[#2C2C2C] px-3 py-1 rounded-md border border-gray-200 dark:border-[#2C2C2C]">
-                        <CheckCheck className="w-4 h-4" /> Completed
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -422,33 +422,41 @@ export const useStore = create<WorkspaceState>((set, get) => ({
   },
 
   updateMemberRole: async (memberId, role) => {
+    const uppercaseRole = role.toUpperCase();
+    const wsId = get().activeWorkspaceId || 1;
+    const previousMembers = get().members;
+    const member = previousMembers.find(m => String(m.id) === String(memberId) || String((m as any).userId) === String(memberId));
+    
     set((state) => ({
-      members: state.members.map(m => String(m.id) === String(memberId) ? { ...m, role } : m)
+      members: state.members.map(m => (String(m.id) === String(memberId) || String((m as any).userId) === String(memberId)) ? { ...m, role: uppercaseRole } : m)
     }));
-    const member = get().members.find(m => String(m.id) === String(memberId));
+
     if (member) {
       const newActivity: ActivityItem = {
         id: Math.random().toString(36).substr(2, 9),
         projectId: 'p1',
         userId: 'm1',
-        action: `updated role of ${member.name} to ${role}`,
+        action: `updated role of ${member.name} to ${uppercaseRole}`,
         timestamp: new Date().toISOString()
       };
       set((state) => ({ activities: [newActivity, ...state.activities] }));
     }
     try {
-      if (!isNaN(Number(memberId))) {
-        await api.patch(`/api/workspaces/1/members/${memberId}`, { role: role.toUpperCase() });
+      if (memberId !== undefined && memberId !== null) {
+        await api.patch(`/api/workspaces/${wsId}/members/${memberId}`, { role: uppercaseRole });
       }
     } catch (err) {
-      console.error("Failed to update member role in backend", err);
+      console.error("Failed to update member role in backend, reverting local state", err);
+      set({ members: previousMembers });
+      throw err;
     }
   },
 
   removeMember: async (memberId) => {
-    const member = get().members.find(m => String(m.id) === String(memberId));
+    const wsId = get().activeWorkspaceId || 1;
+    const member = get().members.find(m => String(m.id) === String(memberId) || String((m as any).userId) === String(memberId));
     set((state) => ({
-      members: state.members.filter(m => String(m.id) !== String(memberId))
+      members: state.members.filter(m => String(m.id) !== String(memberId) && String((m as any).userId) !== String(memberId))
     }));
     if (member) {
       const newActivity: ActivityItem = {
@@ -461,11 +469,12 @@ export const useStore = create<WorkspaceState>((set, get) => ({
       set((state) => ({ activities: [newActivity, ...state.activities] }));
     }
     try {
-      if (!isNaN(Number(memberId))) {
-        await api.delete(`/api/workspaces/1/members/${memberId}`);
+      if (memberId !== undefined && memberId !== null) {
+        await api.delete(`/api/workspaces/${wsId}/members/${memberId}`);
       }
     } catch (err) {
       console.error("Failed to remove member in backend", err);
+      throw err;
     }
   },
 

@@ -32,8 +32,9 @@ export const projectsService = {
     }
 
     // Workspace OWNER or ADMIN always have lead permissions to all projects
-    if (wsMember.role === 'OWNER' || wsMember.role === 'ADMIN') {
-      return { project, role: wsMember.role }
+    const upperWsRole = wsMember.role.toUpperCase();
+    if (upperWsRole === 'OWNER' || upperWsRole === 'ADMIN') {
+      return { project, role: upperWsRole }
     }
 
     // For other workspace members, check explicit project membership strictly
@@ -51,11 +52,12 @@ export const projectsService = {
       throw new AppError(403, 'FORBIDDEN', 'You are not a member of this project')
     }
 
-    if (allowedRoles && !allowedRoles.includes(projMember.role)) {
+    const upperProjRole = projMember.role.toUpperCase();
+    if (allowedRoles && !allowedRoles.map(r => r.toUpperCase()).includes(upperProjRole)) {
       throw new AppError(403, 'FORBIDDEN', 'Insufficient project permissions')
     }
 
-    return { project, role: projMember.role }
+    return { project, role: upperProjRole }
   },
 
   async getProjectWithDetails(projectRecord: typeof projects.$inferSelect) {

@@ -4,7 +4,7 @@ import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { UserPlus, Crown, MoreHorizontal, Search, Check, Link as LinkIcon, Trash, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { useWorkspaces } from "../hooks/useWorkspaces";
+import { useWorkspaces, useWorkspaceMembers } from "../hooks/useWorkspaces";
 import { useProjects, useProjectMembers, useAddProjectMember, useRemoveProjectMember, useUpdateProjectMemberRole } from "../hooks/useProjects";
 import { useTasks } from "../hooks/useTasks";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../components/ui/DropdownMenu";
@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRole } from "../context/RBACContext";
 import { getProjectPermissions } from "../lib/projectPermissions";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Members() {
   const { projectId } = useParams();
@@ -35,7 +36,11 @@ export function Members() {
   const removeProjectMemberMutation = useRemoveProjectMember();
   const updateProjectMemberRoleMutation = useUpdateProjectMemberRole();
   
-  const members = useStore(state => state.members);
+  const queryClient = useQueryClient();
+  const { data: wsMembers, refetch: refetchWsMembers } = useWorkspaceMembers(workspaceId || (activeWorkspaceId ? Number(activeWorkspaceId) : undefined));
+  const storeMembers = useStore(state => state.members);
+  const members = (wsMembers && wsMembers.length > 0) ? wsMembers : storeMembers;
+
   const updateMemberRole = useStore(state => state.updateMemberRole);
   const removeMember = useStore(state => state.removeMember);
   const addMember = useStore(state => state.addMember);
@@ -81,15 +86,23 @@ export function Members() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const handleRemoveMember = () => {
+  const handleRemoveMember = async () => {
     if (!perms.canManageMembers) {
       toast.error("You do not have permission to manage members.");
       setMemberToRemove(null);
       return;
     }
     if (memberToRemove) {
-      removeMember(memberToRemove.id);
-      toast.success(`${memberToRemove.name} removed from workspace`);
+      try {
+        await removeMember(memberToRemove.id);
+        queryClient.invalidateQueries({ queryKey: ['workspace-members'] });
+        queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
+        queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+        refetchWsMembers();
+        toast.success(`${memberToRemove.name} removed from workspace`);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to remove member.");
+      }
       setMemberToRemove(null);
     }
   };
@@ -247,7 +260,7 @@ export function Members() {
                       const isAssigned = Boolean(pm);
                       const pmRole = pm?.role || 'MEMBER';
                       return isAssigned ? (
-                        perms.canManageMembers && member.role !== 'Owner' ? (
+                        perms.canManageMembers && member.role !== 'Owner' && member.role?.toUpperCase() !== 'OWNER' ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
@@ -284,30 +297,38 @@ export function Members() {
                         </span>
                       );
                     })()
-                  ) : member.role === 'Owner' || member.name === profile?.name ? (
+                  ) : member.role === 'Owner' || member.role?.toUpperCase() === 'OWNER' || member.name === profile?.name ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[#2C2C2C]/50 border border-gray-200 dark:border-gray-700">
-                      {member.role === 'Owner' && <Crown className="w-3 h-3 text-amber-500" />}
-                      {member.role}
+                      {(member.role === 'Owner' || member.role?.toUpperCase() === 'OWNER') && <Crown className="w-3 h-3 text-amber-500" />}
+                      {member.role?.toUpperCase()}
                     </span>
                   ) : perms.canManageMembers ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[#2C2C2C]/50 border border-gray-200 dark:border-[#2C2C2C] hover:bg-gray-100 dark:hover:bg-[#333] transition-colors">
-                          {member.role}
+                          {member.role?.toUpperCase()}
                           <span className="text-[10px]">▼</span>
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
-                        {['Admin', 'Member', 'Viewer'].map(role => (
+                        {['ADMIN', 'MEMBER', 'VIEWER'].map(role => (
                           <DropdownMenuItem
                             key={role}
-                            onClick={() => {
+                            onClick={async () => {
                               if (!perms.canManageMembers) {
                                 toast.error("You do not have permission to modify roles.");
                                 return;
                               }
-                              updateMemberRole(member.id, role);
-                              toast.success(`Role updated to ${role}`);
+                              try {
+                                await updateMemberRole(member.id, role);
+                                queryClient.invalidateQueries({ queryKey: ['workspace-members'] });
+                                queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
+                                queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+                                refetchWsMembers();
+                                toast.success(`Role updated to ${role}`);
+                              } catch (err: any) {
+                                toast.error(err?.message || "Failed to update role.");
+                              }
                             }}
                           >
                             {role}
@@ -317,7 +338,7 @@ export function Members() {
                     </DropdownMenu>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[#2C2C2C]/50 border border-gray-200 dark:border-gray-700">
-                      {member.role}
+                      {member.role?.toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -327,7 +348,7 @@ export function Members() {
                 </div>
 
                 <div className="col-span-2 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                  {parsedId > 0 && perms.canManageMembers && member.role !== 'Owner' ? (
+                  {parsedId > 0 && perms.canManageMembers && member.role !== 'Owner' && member.role?.toUpperCase() !== 'OWNER' ? (
                     (() => {
                       const isAssigned = projectMembersList.some((pm: any) => Number(pm.id) === Number(member.id) || Number(pm.userId) === Number(member.id) || (pm.email && member.email && pm.email.toLowerCase() === member.email.toLowerCase()));
                       return isAssigned ? (

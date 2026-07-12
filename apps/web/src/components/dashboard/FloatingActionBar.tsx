@@ -7,10 +7,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useWorkspaces } from "../../hooks/useWorkspaces";
 import { useProjects } from "../../hooks/useProjects"
 import { useStore } from "../../store/useStore";
+import { useRole } from "../../context/RBACContext";
 
 export function FloatingActionBar() {
   const navigate = useNavigate();
   const { projectId: routeProjectId } = useParams();
+  const { permissions } = useRole();
   const [isOpen, setIsOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const { activeWorkspaceId } = useStore();
@@ -53,7 +55,7 @@ export function FloatingActionBar() {
   
   const actions = [
     { type: 'ai', icon: <Sparkles className="w-5 h-5" />, tooltip: "AI Intelligence" },
-    { type: 'new', icon: <Plus className="w-5 h-5" />, tooltip: "New Project" },
+    ...(permissions?.canCreateProject ? [{ type: 'new', icon: <Plus className="w-5 h-5" />, tooltip: "New Project" }] : []),
     { type: 'snippets', icon: <Code className="w-5 h-5" />, tooltip: "Snippets" },
     { type: 'status', icon: <Sun className="w-5 h-5" />, tooltip: "Status Report" },
     { type: 'wiki', icon: <BookOpen className="w-5 h-5" />, tooltip: "Wiki" },
