@@ -11,15 +11,62 @@ export function Billing() {
   
   const updatePlanMutation = useMutation({
     mutationFn: async (plan: 'FREE' | 'PRO') => {
-      const response = await api.patch('/api/users/me', { plan });
-      return response.data;
+      if (plan === 'FREE') {
+        const response = await api.patch('/api/users/me', { plan });
+        return response.data;
+      }
+      
+      // PRO plan upgrade via Razorpay
+      const { data: order } = await api.post('/api/payments/create-order', { plan });
+      
+      return new Promise((resolve, reject) => {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy',
+          amount: order.amount,
+          currency: order.currency,
+          name: 'DevCollab',
+          description: 'Upgrade to Pro Plan',
+          order_id: order.id,
+          handler: async (response: any) => {
+            try {
+              const { data } = await api.post('/api/payments/verify', {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan: 'PRO'
+              });
+              resolve(data.user);
+            } catch (err) {
+              reject(err);
+            }
+          },
+          prefill: {
+            name: (user as any)?.name || '',
+            email: (user as any)?.email || '',
+          },
+          theme: {
+            color: '#4f46e5'
+          },
+          modal: {
+            ondismiss: () => {
+              reject(new Error('Payment cancelled'));
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', (response: any) => {
+          reject(new Error(response.error.description || 'Payment failed'));
+        });
+        rzp.open();
+      });
     },
-    onSuccess: (updatedUser) => {
+    onSuccess: (updatedUser: any) => {
       login(updatedUser);
       toast.success(`Plan updated to ${updatedUser.plan}!`);
     },
-    onError: () => {
-      toast.error("Failed to update plan");
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update plan");
     }
   });
   

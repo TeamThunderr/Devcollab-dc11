@@ -23,6 +23,7 @@ import { projectSnippetsRoutes, singleSnippetRoutes } from './modules/snippets/s
 import { projectSprintsRoutes, singleSprintRoutes } from './modules/sprints/sprints.routes.js'
 import { workspaceActivityRoutes, projectActivityRoutes, notificationsRoutes } from './modules/activity/activity.routes.js'
 import { aiRoutes } from './modules/ai/ai.routes.js'
+import { paymentsRoutes } from './modules/payments/payments.routes.js' // Added payments
 import multipart from '@fastify/multipart'
 
 const logger = createLogger('server')
@@ -113,6 +114,8 @@ await app.register(projectActivityRoutes, { prefix: '/api/projects/:projectId/ac
 await app.register(notificationsRoutes, { prefix: '/api/me/notifications' })
 // — AI —
 await app.register(aiRoutes, { prefix: '/api/ai' })
+// — Payments —
+await app.register(paymentsRoutes, { prefix: '/api/payments' })
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', async (_request, _reply) => {
