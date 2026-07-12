@@ -4,6 +4,8 @@ import { env } from '../config/env.js'
 import { createLogger } from '../lib/logger.js'
 import { verifyToken } from '../lib/jwt.js'
 import { setIO } from './io.js'
+import { projectsService } from '../modules/projects/projects.service.js'
+import { chatService } from '../modules/chat/chat.service.js'
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -85,12 +87,17 @@ export function initSocket(httpServer: HttpServer): TypedIO {
     })
 
     // ── Project Rooms ───────────────────────────────────────────────────────
-    socket.on('project:join', (projectId) => {
-      const room = `project:${projectId}`
-      socket.join(room)
-      logger.debug({ userId, room }, 'Joined project room')
-
-      socket.to(room).emit('user:joined', { userId, roomId: room })
+    socket.on('project:join', async (projectId) => {
+      try {
+        await projectsService.checkProjectPermission(projectId, userId)
+        const room = `project:${projectId}`
+        socket.join(room)
+        logger.debug({ userId, room }, 'Joined project room')
+        socket.to(room).emit('user:joined', { userId, roomId: room })
+      } catch (err) {
+        logger.warn({ userId, projectId }, 'Unauthorized project:join attempt')
+        socket.emit('error', { message: 'Unauthorized to join project chat' })
+      }
     })
 
     socket.on('project:leave', (projectId) => {
@@ -99,6 +106,18 @@ export function initSocket(httpServer: HttpServer): TypedIO {
       logger.debug({ userId, room }, 'Left project room')
 
       socket.to(room).emit('user:left', { userId, roomId: room })
+    })
+
+    socket.on('chat:send', async (payload) => {
+      try {
+        await chatService.sendMessage(payload.projectId, userId, {
+          channel: payload.channel || 'general',
+          content: payload.content,
+        })
+      } catch (err: any) {
+        logger.warn({ userId, projectId: payload.projectId, err }, 'Unauthorized chat:send attempt')
+        socket.emit('error', { message: err.message || 'Unauthorized to send chat message' })
+      }
     })
 
     // ── Live Cursor / Presence ──────────────────────────────────────────────

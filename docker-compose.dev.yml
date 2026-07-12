@@ -18,6 +18,7 @@ services:
       - '5435:5432'
     volumes:
       - postgres_dev_data_2:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U devcollab -d devcollab']
       interval: 10s

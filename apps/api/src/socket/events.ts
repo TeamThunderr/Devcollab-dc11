@@ -44,6 +44,9 @@ export interface ServerToClientEvents {
   // Activity feed
   'activity:new': (payload: { id?: number; workspaceId: number; projectId?: number | null; userId: number; actionType: string; metadata?: any; createdAt?: string | Date }) => void
 
+  // Chat events
+  'chat:message': (payload: ChatMessagePayload) => void
+
   // Presence / cursors
   'cursor:move': (payload: CursorPayload) => void
   'user:joined': (payload: PresencePayload) => void
@@ -67,6 +70,7 @@ export interface ClientToServerEvents {
 
   'doc:edit': (payload: DocEditPayload) => void
   'cursor:move': (payload: CursorPayload) => void
+  'chat:send': (payload: { projectId: number; channel: string; content: string }) => void
 }
 
 // ─── Per-socket data stored on the server ─────────────────────────────────────
@@ -127,3 +131,16 @@ export interface NotificationPayload {
   type: string
   message: string
 }
+
+export interface ChatMessagePayload {
+  id: number | string
+  projectId: number
+  userId: number
+  channel: string
+  content: string
+  createdAt: string
+  senderName: string
+  senderRole: string
+  avatarUrl?: string | null
+}
+
