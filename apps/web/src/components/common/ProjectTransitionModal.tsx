@@ -15,7 +15,7 @@ export function ProjectTransitionModal() {
     const timer = setTimeout(() => {
       const targetId = transitioningProject.id;
       triggerProjectTransition(null);
-      navigate(`/projects/${targetId}`);
+      navigate(`/projects/${targetId}/overview`);
     }, 1100);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -23,7 +23,7 @@ export function ProjectTransitionModal() {
         clearTimeout(timer);
         const targetId = transitioningProject.id;
         triggerProjectTransition(null);
-        navigate(`/projects/${targetId}`);
+        navigate(`/projects/${targetId}/overview`);
       }
     };
 
@@ -117,7 +117,7 @@ export function ProjectTransitionModal() {
               onClick={() => {
                 const targetId = transitioningProject.id;
                 triggerProjectTransition(null);
-                navigate(`/projects/${targetId}`);
+                navigate(`/projects/${targetId}/overview`);
               }}
               className="mt-8 text-xs font-mono text-gray-500 hover:text-white cursor-pointer transition-colors flex items-center gap-1.5 select-none"
             >

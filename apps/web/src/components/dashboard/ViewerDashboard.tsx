@@ -21,15 +21,16 @@ interface ViewerDashboardProps {
   projectId?: string;
 }
 
-export function ViewerDashboard({ projectId }: ViewerDashboardProps = {}) {
+export function ViewerDashboard({ projectId: propProjectId }: ViewerDashboardProps = {}) {
   const navigate = useNavigate();
   const projects = useStore(state => state.projects);
   const tasks = useStore(state => state.tasks);
   const members = useStore(state => state.members);
   const activities = useStore(state => state.activities);
 
-  const project = projects.find(p => p.id === projectId) || projects[0];
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
+  const project = (propProjectId ? projects.find(p => String(p.id) === String(propProjectId)) : undefined) || projects[0];
+  const projectId = project?.id;
+  const projectTasks = tasks.filter(t => String(t.projectId) === String(projectId));
   const projectMembers = Array.isArray(project?.members) && project.members.length > 0
     ? members.filter(m => project.members.includes(m.id))
     : members;
