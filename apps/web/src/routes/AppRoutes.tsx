@@ -61,7 +61,7 @@ function ProjectRouteGuard({ children, capability }: { children: React.ReactNode
 
 function WorkspaceRouteGuard({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { role } = useRole();
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'OWNER';
 
   if (adminOnly && !isAdmin) {
     return <Navigate to="/dashboard" replace />;

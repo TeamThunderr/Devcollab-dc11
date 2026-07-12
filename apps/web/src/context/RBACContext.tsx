@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 
-export type Role = "ADMIN" | "MEMBER" | "VIEWER";
-
-
-
+export type Role = "ADMIN" | "MEMBER" | "VIEWER" | "OWNER";
 
 export interface Permissions {
   // Task Permissions
@@ -36,7 +33,7 @@ export interface Permissions {
 }
 
 const buildPermissionsForRole = (role: Role, currentUserId: string): Permissions => {
-  const isAdmin = role === "ADMIN";
+  const isAdmin = role === "ADMIN" || role === "OWNER";
   const isMember = role === "MEMBER";
   const atLeastMember = isAdmin || isMember;
 
@@ -77,23 +74,38 @@ interface RBACContextType {
   currentUserId: string;
 }
 
+import { useStore } from "../store/useStore";
+
 const RBACContext = createContext<RBACContextType | undefined>(undefined);
 
 export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const { currentUser } = useAuth();
+  const members = useStore(state => state.members);
   
-  const [role, setRoleState] = useState<Role>(() => {
+  const [manualRole, setManualRole] = useState<Role | null>(() => {
     const saved = localStorage.getItem("devcollab_role");
-    return (saved as Role) || "MEMBER";
+    return saved ? (saved as Role) : null;
   });
 
   const setRole = (newRole: Role) => {
-    setRoleState(newRole);
+    setManualRole(newRole);
     localStorage.setItem("devcollab_role", newRole);
   };
 
   const currentUserId = currentUser?.id?.toString() || "";
-
+  
+  // Find current user's role in the active workspace
+  const currentMember = members.find(m => 
+    (m.id && String(m.id) === currentUserId) || 
+    (m.email && currentUser?.email && m.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
+  
+  let role: Role = "MEMBER";
+  if (manualRole) {
+    role = manualRole;
+  } else if (currentMember?.role) {
+    role = currentMember.role.toUpperCase() as Role;
+  }
 
   const permissions = buildPermissionsForRole(role, currentUserId);
 
