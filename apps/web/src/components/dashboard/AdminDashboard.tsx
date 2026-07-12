@@ -36,20 +36,48 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
   const [selectedDueDate, setSelectedDueDate] = useState("Tomorrow");
   const [isDispatching, setIsDispatching] = useState(false);
 
-  const handleDispatchTask = (e: React.FormEvent) => {
+  const handleDispatchTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) {
       toast.error("Please enter a task title");
       return;
     }
     setIsDispatching(true);
-    setTimeout(() => {
-      createTask(effectiveProjectId, taskTitle.trim(), selectedAssignee, selectedPriority, selectedDueDate);
-      const assigneeName = members.find(m => m.id === selectedAssignee)?.name || "Team Member";
+    
+    try {
+      // Calculate real date from human readable selection
+      const now = new Date();
+      let actualDueDate: string | undefined;
+      
+      if (selectedDueDate === "Today") {
+        actualDueDate = now.toISOString();
+      } else if (selectedDueDate === "Tomorrow") {
+        now.setDate(now.getDate() + 1);
+        actualDueDate = now.toISOString();
+      } else if (selectedDueDate === "In 3 days") {
+        now.setDate(now.getDate() + 3);
+        actualDueDate = now.toISOString();
+      } else if (selectedDueDate === "Next Week") {
+        now.setDate(now.getDate() + 7);
+        actualDueDate = now.toISOString();
+      }
+
+      await createTask(
+        effectiveProjectId, 
+        taskTitle.trim(), 
+        selectedAssignee, 
+        selectedPriority, 
+        actualDueDate
+      );
+      
+      const assigneeName = members.find(m => String(m.id) === String(selectedAssignee))?.name || "Team Member";
       toast.success(`Task dispatched to ${assigneeName}!`);
       setTaskTitle("");
+    } catch (err: any) {
+      toast.error("Failed to dispatch task. Please try again.");
+    } finally {
       setIsDispatching(false);
-    }, 400);
+    }
   };
 
   return (
