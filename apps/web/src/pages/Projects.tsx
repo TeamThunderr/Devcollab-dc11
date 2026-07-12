@@ -11,8 +11,10 @@ import { useWorkspaces } from "../hooks/useWorkspaces";
 import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "../hooks/useProjects";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
+import { useRole } from "../context/RBACContext";
 
 export function Projects() {
+  const { permissions } = useRole();
   const triggerProjectTransition = useStore((state) => state.triggerProjectTransition);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -41,6 +43,10 @@ export function Projects() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workspaceId) return;
+    if (!permissions?.canCreateProject) {
+      toast.error("Only Workspace Admins and Owners can create projects.");
+      return;
+    }
     
     try {
       await createProject.mutateAsync({
@@ -102,41 +108,43 @@ export function Projects() {
               </button>
             </div>
 
-            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-              <DialogTrigger asChild>
-                <button className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap shadow-sm">
-                  <Plus className="w-4 h-4" />
-                  New Project
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Project</DialogTitle>
-                  <DialogDescription>
-                    Enter the details for your new project. Click save when you're done.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateProject} className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Project Name</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      className="w-full bg-white dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-md px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-700 transition-all text-sm" 
-                      placeholder="e.g. Marketing Site Redesign" 
-                    />
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-[#2C2C2C]">
-                    <DialogClose asChild>
-                      <button type="button" className="px-4 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">Cancel</button>
-                    </DialogClose>
-                    <button type="submit" className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-opacity">Create Project</button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            {permissions?.canCreateProject && (
+              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <DialogTrigger asChild>
+                  <button className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap shadow-sm">
+                    <Plus className="w-4 h-4" />
+                    New Project
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Project</DialogTitle>
+                    <DialogDescription>
+                      Enter the details for your new project. Click save when you're done.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateProject} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Project Name</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={newProjectName}
+                        onChange={(e) => setNewProjectName(e.target.value)}
+                        className="w-full bg-white dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-md px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-700 transition-all text-sm" 
+                        placeholder="e.g. Marketing Site Redesign" 
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-[#2C2C2C]">
+                      <DialogClose asChild>
+                        <button type="button" className="px-4 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">Cancel</button>
+                      </DialogClose>
+                      <button type="submit" className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-opacity">Create Project</button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 

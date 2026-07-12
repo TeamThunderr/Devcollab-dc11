@@ -108,8 +108,8 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
       toast.error("Please enter a task title");
       return;
     }
-    if (!isAdmin) {
-      toast.error("Only Admins can create tasks");
+    if (role?.toUpperCase() === "VIEWER") {
+      toast.error("Viewers cannot create tasks");
       return;
     }
 
@@ -132,7 +132,8 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
 
     setIsSubmitting(true);
     try {
-      if (isAdmin) {
+      const isTaskCreator = String(task.createdBy) === String(currentUserId);
+      if (isAdmin || isTaskCreator) {
         await updateTask(task.id, {
           title: title.trim(),
           description,
@@ -142,7 +143,7 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
           dueDate: dueDate || null,
         });
       } else {
-        // Member can only update status
+        // Assigned Member can update status
         await updateTaskStatus(task.id, status);
       }
       toast.success("Task updated successfully!");

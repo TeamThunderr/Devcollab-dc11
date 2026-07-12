@@ -41,6 +41,11 @@ export interface ServerToClientEvents {
   'project:member_added': (payload: { projectId: number; userId: number; role: string }) => void
   'project:member_removed': (payload: { projectId: number; userId: number }) => void
 
+  // Workspace member events
+  'member:added': (payload: { userId: number; role?: string }) => void
+  'member:updated': (payload: { userId: number; role?: string }) => void
+  'member:removed': (payload: { userId: number }) => void
+
   // Activity feed
   'activity:new': (payload: { id?: number; workspaceId: number; projectId?: number | null; userId: number; actionType: string; metadata?: any; createdAt?: string | Date }) => void
 

@@ -10,6 +10,7 @@ export interface Permissions {
   canDeleteTask: (resourceOwnerId: string) => boolean;
   
   // Project Permissions
+  canCreateProject: boolean;
   canInviteMembers: boolean;
   canManageMembers: boolean;
   canEditProjectSettings: boolean;
@@ -39,11 +40,12 @@ const buildPermissionsForRole = (role: Role, currentUserId: string): Permissions
 
   return {
     // Task Permissions
-    canCreateTask: isAdmin,
+    canCreateTask: atLeastMember,
     canEditTask: (resourceOwnerId) => isAdmin || (isMember && resourceOwnerId === currentUserId),
     canDeleteTask: (resourceOwnerId) => isAdmin || (isMember && resourceOwnerId === currentUserId),
 
     // Project Permissions
+    canCreateProject: isAdmin,
     canInviteMembers: isAdmin,
     canManageMembers: isAdmin,
     canEditProjectSettings: isAdmin,
@@ -181,5 +183,5 @@ export const useRole = () => {
   if (!context) {
     throw new Error("useRole must be used within an RBACProvider");
   }
-  return { role: context.role, setRole: context.setRole, currentUserId: context.currentUserId };
+  return { role: context.role, setRole: context.setRole, permissions: context.permissions, currentUserId: context.currentUserId };
 };

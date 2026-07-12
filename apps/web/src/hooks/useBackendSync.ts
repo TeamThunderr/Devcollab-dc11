@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useStore, Project, Task, Member, ActivityItem, Notification, Snippet, Doc } from "../store/useStore";
+import { useStore, Project, Task, Member, ActivityItem, Notification, Snippet, Doc, toFrontendStatus } from "../store/useStore";
 import { api } from '../lib/api';
 import { useSocket } from './useSocket';
 
@@ -47,7 +47,7 @@ export function useBackendSync() {
             updatedAt: p.updatedAt,
           }));
         }
-        tasks = taskRes.data;
+        tasks = taskRes.data ? taskRes.data.map((t: any) => ({ ...t, status: toFrontendStatus(t.status) })) : undefined;
         if (memRes.data) {
           members = memRes.data.map((m: any) => ({
             id: m.id || m.userId,
@@ -117,6 +117,9 @@ export function useBackendSync() {
     socket.on('snippet:deleted', handleEvent);
     socket.on('notification', handleEvent);
     socket.on('notification:new', handleEvent);
+    socket.on('member:updated', handleEvent);
+    socket.on('member:added', handleEvent);
+    socket.on('member:removed', handleEvent);
     socket.on('invitation:rejected', (payload: any) => {
       if (payload && payload.email) {
         useStore.getState().removePendingInvitationByEmail(payload.email);
@@ -136,6 +139,9 @@ export function useBackendSync() {
       socket.off('snippet:deleted', handleEvent);
       socket.off('notification', handleEvent);
       socket.off('notification:new', handleEvent);
+      socket.off('member:updated', handleEvent);
+      socket.off('member:added', handleEvent);
+      socket.off('member:removed', handleEvent);
       socket.off('invitation:rejected');
     };
   }, [socket]);
