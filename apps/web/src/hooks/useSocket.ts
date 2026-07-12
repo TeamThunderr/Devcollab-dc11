@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 
-const SOCKET_URL = import.meta.env['VITE_API_URL'] ?? 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export function useSocket(projectId?: number | string, workspaceId?: number | string) {
   const { currentUser } = useAuth();
