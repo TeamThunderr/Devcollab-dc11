@@ -22,6 +22,15 @@ export function WorkspaceSelection() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+
+  useEffect(() => {
+    const returnTo = localStorage.getItem('returnTo');
+    if (returnTo) {
+      localStorage.removeItem('returnTo');
+      navigate(returnTo);
+    }
+  }, [navigate]);
+
   const filteredWorkspaces = workspaces?.filter(w => 
     w.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
