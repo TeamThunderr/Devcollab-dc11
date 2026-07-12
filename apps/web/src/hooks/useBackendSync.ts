@@ -51,11 +51,12 @@ export function useBackendSync() {
         if (memRes.data) {
           members = memRes.data.map((m: any) => ({
             id: m.id || m.userId,
-            name: m.name || m.user?.name || 'Unknown User',
+            name: m.name !== 'Pending User' ? (m.name || m.user?.name || 'Unknown User') : m.email.split('@')[0],
             email: m.email || m.user?.email || '',
             role: m.role || 'Member',
             joinedAt: m.joinedAt || m.createdAt || new Date().toISOString(),
             avatarUrl: m.avatarUrl || m.user?.avatarUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${m.name || 'user'}`,
+            status: m.status || 'Active',
           }));
         }
         activities = actRes.data;
@@ -117,6 +118,7 @@ export function useBackendSync() {
     socket.on('snippet:deleted', handleEvent);
     socket.on('notification', handleEvent);
     socket.on('notification:new', handleEvent);
+    socket.on('member:joined', handleEvent);
     socket.on('member:updated', handleEvent);
     socket.on('member:added', handleEvent);
     socket.on('member:removed', handleEvent);
@@ -139,6 +141,7 @@ export function useBackendSync() {
       socket.off('snippet:deleted', handleEvent);
       socket.off('notification', handleEvent);
       socket.off('notification:new', handleEvent);
+      socket.off('member:joined', handleEvent);
       socket.off('member:updated', handleEvent);
       socket.off('member:added', handleEvent);
       socket.off('member:removed', handleEvent);
