@@ -70,7 +70,9 @@ export function initSocket(httpServer: HttpServer): TypedIO {
 
     // ── Workspace Rooms ─────────────────────────────────────────────────────
     socket.on('workspace:join', (workspaceId) => {
-      const room = `workspace:${workspaceId}`
+      const numId = Number(workspaceId)
+      if (isNaN(numId)) return
+      const room = `workspace:${numId}`
       socket.join(room)
       logger.debug({ userId, room }, 'Joined workspace room')
 
@@ -79,7 +81,9 @@ export function initSocket(httpServer: HttpServer): TypedIO {
     })
 
     socket.on('workspace:leave', (workspaceId) => {
-      const room = `workspace:${workspaceId}`
+      const numId = Number(workspaceId)
+      if (isNaN(numId)) return
+      const room = `workspace:${numId}`
       socket.leave(room)
       logger.debug({ userId, room }, 'Left workspace room')
 
@@ -88,20 +92,24 @@ export function initSocket(httpServer: HttpServer): TypedIO {
 
     // ── Project Rooms ───────────────────────────────────────────────────────
     socket.on('project:join', async (projectId) => {
+      const numId = Number(projectId)
+      if (isNaN(numId)) return
       try {
-        await projectsService.checkProjectPermission(projectId, userId)
-        const room = `project:${projectId}`
+        await projectsService.checkProjectPermission(numId, userId)
+        const room = `project:${numId}`
         socket.join(room)
         logger.debug({ userId, room }, 'Joined project room')
         socket.to(room).emit('user:joined', { userId, roomId: room })
       } catch (err) {
-        logger.warn({ userId, projectId }, 'Unauthorized project:join attempt')
+        logger.warn({ userId, projectId: numId }, 'Unauthorized project:join attempt')
         socket.emit('error', { message: 'Unauthorized to join project chat' })
       }
     })
 
     socket.on('project:leave', (projectId) => {
-      const room = `project:${projectId}`
+      const numId = Number(projectId)
+      if (isNaN(numId)) return
+      const room = `project:${numId}`
       socket.leave(room)
       logger.debug({ userId, room }, 'Left project room')
 

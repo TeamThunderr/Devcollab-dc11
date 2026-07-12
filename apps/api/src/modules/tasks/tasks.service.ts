@@ -26,7 +26,7 @@ export const tasksService = {
       try {
         await projectsService.checkProjectPermission(projectId, data.assigneeId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
       } catch (err) {
-        throw new AppError(400, 'BAD_REQUEST', 'Cannot assign task to a Viewer or unauthorized user')
+        throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.')
       }
     }
 
@@ -103,7 +103,7 @@ export const tasksService = {
       try {
         await projectsService.checkProjectPermission(task.projectId, data.assigneeId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
       } catch (err) {
-        throw new AppError(400, 'BAD_REQUEST', 'Cannot assign task to a Viewer or unauthorized user')
+        throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.')
       }
     }
 

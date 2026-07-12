@@ -1,13 +1,16 @@
 import React from "react";
-import { Check, CreditCard, Shield, Zap } from "lucide-react";
+import { Check, CreditCard, Info, Shield, Zap } from "lucide-react";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
+import { useRole } from "../context/RBACContext";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 
 export function Billing() {
   const { currentUser: user, login } = useAuth();
+  const { role } = useRole();
+  const isAdmin = role === "ADMIN" || role === "OWNER";
   
   const updatePlanMutation = useMutation({
     mutationFn: async (plan: 'FREE' | 'PRO') => {
@@ -84,6 +87,19 @@ export function Billing() {
           </p>
         </div>
 
+        {/* Read-Only Banner for Members/Viewers */}
+        {!isAdmin && (
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Read-only view</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                You are viewing billing details in read-only mode. Only Workspace Admins or Owners can upgrade or modify subscription plans.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Current Plan Alert */}
         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -97,7 +113,7 @@ export function Billing() {
               </h2>
             </div>
           </div>
-          {(user as any)?.plan !== "PRO" && (
+          {isAdmin && (user as any)?.plan !== "PRO" && (
             <button 
               onClick={() => updatePlanMutation.mutate('PRO')}
               disabled={isUpdating}
@@ -143,10 +159,10 @@ export function Billing() {
             
             <button 
               onClick={() => updatePlanMutation.mutate('FREE')}
-              disabled={(user as any)?.plan === "FREE" || isUpdating}
-              className="w-full py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium text-sm disabled:opacity-50 disabled:bg-gray-50 dark:disabled:bg-gray-900 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+              disabled={!isAdmin || (user as any)?.plan === "FREE" || isUpdating}
+              className="w-full py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-900 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              {(user as any)?.plan === "FREE" ? "Current Plan" : (isUpdating ? "Downgrading..." : "Downgrade to Starter")}
+              {(user as any)?.plan === "FREE" ? "Current Plan" : (isUpdating ? "Downgrading..." : isAdmin ? "Downgrade to Starter" : "Starter Plan")}
             </button>
           </div>
 
@@ -183,10 +199,10 @@ export function Billing() {
             
             <button 
               onClick={() => updatePlanMutation.mutate('PRO')}
-              disabled={(user as any)?.plan === "PRO" || isUpdating}
-              className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors disabled:opacity-50"
+              disabled={!isAdmin || (user as any)?.plan === "PRO" || isUpdating}
+              className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {(user as any)?.plan === "PRO" ? "Current Plan" : (isUpdating ? "Upgrading..." : "Upgrade to Pro")}
+              {(user as any)?.plan === "PRO" ? "Current Plan" : (isUpdating ? "Upgrading..." : isAdmin ? "Upgrade to Pro" : "Pro Plan")}
             </button>
           </div>
         </div>

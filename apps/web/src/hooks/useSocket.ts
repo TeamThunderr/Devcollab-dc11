@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
 export function useSocket(projectId?: number | string, workspaceId?: number | string) {
   const { currentUser } = useAuth();
@@ -23,7 +23,7 @@ export function useSocket(projectId?: number | string, workspaceId?: number | st
 
     const newSocket = io(SOCKET_URL, {
       withCredentials: true,
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
     });
 
     setSocket(newSocket);
@@ -46,6 +46,7 @@ export function useSocket(projectId?: number | string, workspaceId?: number | st
     newSocket.on('task:created', invalidateTasks);
     newSocket.on('task:updated', invalidateTasks);
     newSocket.on('task:deleted', invalidateTasks);
+    (newSocket as any).on('task:assigned', invalidateTasks);
 
     // Snippet events
     const invalidateSnippets = () => {
@@ -93,10 +94,9 @@ export function useSocket(projectId?: number | string, workspaceId?: number | st
       queryClient.invalidateQueries({ queryKey: ['project-activity'] });
     });
 
-    // Comments events
+    // Comment events
     const invalidateComments = () => {
       queryClient.invalidateQueries({ queryKey: ['task-comments'] });
-      queryClient.invalidateQueries({ queryKey: ['comments'] });
     };
     newSocket.on('comment:added', invalidateComments);
     newSocket.on('comment:deleted', invalidateComments);
@@ -121,28 +121,40 @@ export function useSocket(projectId?: number | string, workspaceId?: number | st
 
   // Handle dynamic room joins/leaves when projectId or workspaceId changes
   useEffect(() => {
-    if (!socket || !socket.connected) return;
+    if (!socket) return;
 
-    const numWsId = workspaceId ? Number(workspaceId) : null;
-    if (numWsId && !isNaN(numWsId) && numWsId !== activeWorkspaceRef.current) {
-      if (activeWorkspaceRef.current) {
-        socket.emit('workspace:leave', activeWorkspaceRef.current);
-      }
-      socket.emit('workspace:join', numWsId);
-      activeWorkspaceRef.current = numWsId;
-    }
+    const numWsId = workspaceId && !isNaN(Number(workspaceId)) ? Number(workspaceId) : null;
+    const numProjId = projectId && !isNaN(Number(projectId)) ? Number(projectId) : null;
 
-    const numProjId = projectId ? Number(projectId) : null;
-    if (numProjId && !isNaN(numProjId) && numProjId !== activeProjectRef.current) {
-      if (activeProjectRef.current) {
-        socket.emit('project:leave', activeProjectRef.current);
+    const joinRooms = () => {
+      if (!socket.connected) return;
+      if (numWsId && numWsId !== activeWorkspaceRef.current) {
+        if (activeWorkspaceRef.current) {
+          socket.emit('workspace:leave', activeWorkspaceRef.current);
+        }
+        socket.emit('workspace:join', numWsId);
+        activeWorkspaceRef.current = numWsId;
+      } else if (numWsId && activeWorkspaceRef.current === numWsId) {
+        socket.emit('workspace:join', numWsId);
       }
-      socket.emit('project:join', numProjId);
-      activeProjectRef.current = numProjId;
-    }
+
+      if (numProjId && numProjId !== activeProjectRef.current) {
+        if (activeProjectRef.current) {
+          socket.emit('project:leave', activeProjectRef.current);
+        }
+        socket.emit('project:join', numProjId);
+        activeProjectRef.current = numProjId;
+      } else if (numProjId && activeProjectRef.current === numProjId) {
+        socket.emit('project:join', numProjId);
+      }
+    };
+
+    joinRooms();
+    socket.on('connect', joinRooms);
 
     return () => {
-      if (socket && socket.connected && activeProjectRef.current && numProjId === activeProjectRef.current) {
+      socket.off('connect', joinRooms);
+      if (socket.connected && activeProjectRef.current && numProjId === activeProjectRef.current) {
         socket.emit('project:leave', activeProjectRef.current);
         activeProjectRef.current = null;
       }
