@@ -22,6 +22,14 @@ export const tasksService = {
     const { project } = await projectsService.checkProjectPermission(projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
     const workspaceId = project.workspaceId
 
+    if (data.assigneeId !== undefined && data.assigneeId !== null) {
+      try {
+        await projectsService.checkProjectPermission(projectId, data.assigneeId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
+      } catch (err) {
+        throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.')
+      }
+    }
+
     const [task] = await db
       .insert(tasks)
       .values({
@@ -90,6 +98,14 @@ export const tasksService = {
 
     const { project } = await projectsService.checkProjectPermission(task.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
     const workspaceId = project.workspaceId
+
+    if (data.assigneeId !== undefined && data.assigneeId !== null) {
+      try {
+        await projectsService.checkProjectPermission(task.projectId, data.assigneeId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
+      } catch (err) {
+        throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.')
+      }
+    }
 
     const updateData: any = { ...data }
     if (data.dueDate) updateData.dueDate = new Date(data.dueDate)

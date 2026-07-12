@@ -32,8 +32,9 @@ export const projectsService = {
     }
 
     // Workspace OWNER or ADMIN always have lead permissions to all projects
-    if (wsMember.role === 'OWNER' || wsMember.role === 'ADMIN') {
-      return { project, role: wsMember.role }
+    const upperWsRole = wsMember.role.toUpperCase();
+    if (upperWsRole === 'OWNER' || upperWsRole === 'ADMIN') {
+      return { project, role: upperWsRole }
     }
 
     // For other workspace members, check explicit project membership strictly
@@ -51,11 +52,12 @@ export const projectsService = {
       throw new AppError(403, 'FORBIDDEN', 'You are not a member of this project')
     }
 
-    if (allowedRoles && !allowedRoles.includes(projMember.role)) {
+    const upperProjRole = projMember.role.toUpperCase();
+    if (allowedRoles && !allowedRoles.map(r => r.toUpperCase()).includes(upperProjRole)) {
       throw new AppError(403, 'FORBIDDEN', 'Insufficient project permissions')
     }
 
-    return { project, role: projMember.role }
+    return { project, role: upperProjRole }
   },
 
   async getProjectWithDetails(projectRecord: typeof projects.$inferSelect) {
@@ -136,10 +138,24 @@ export const projectsService = {
 
   async getProjects(workspaceId: number, userId: number) {
     // Any member of the workspace can view workspace projects they have access to or check list
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    const wsMember = await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+
+    let whereClause: any = eq(projects.workspaceId, workspaceId)
+    if (wsMember.role !== 'OWNER' && wsMember.role !== 'ADMIN') {
+      const myProjectMembers = await db
+        .select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(eq(projectMembers.userId, userId))
+
+      const myProjectIds = myProjectMembers.map((pm) => pm.projectId)
+      if (myProjectIds.length === 0) {
+        return []
+      }
+      whereClause = and(eq(projects.workspaceId, workspaceId), inArray(projects.id, myProjectIds))
+    }
 
     const workspaceProjects = await db.query.projects.findMany({
-      where: eq(projects.workspaceId, workspaceId),
+      where: whereClause,
       orderBy: desc(projects.createdAt),
     })
 

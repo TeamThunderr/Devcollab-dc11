@@ -95,9 +95,11 @@ export function Sidebar() {
         {/* Admin */}
         <nav className="space-y-0.5">
           <NavItem icon={<Users className="w-5 h-5" />} label="Members" to="/members" isCollapsed={isCollapsed} />
+          {isAtLeastMember && (
+            <NavItem icon={<CreditCard className="w-5 h-5" />} label="Billing" to="/billing" isCollapsed={isCollapsed} />
+          )}
           {isAdmin && (
             <>
-              <NavItem icon={<CreditCard className="w-5 h-5" />} label="Billing" to="/billing" isCollapsed={isCollapsed} />
               <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" to="/settings" isCollapsed={isCollapsed} />
             </>
           )}

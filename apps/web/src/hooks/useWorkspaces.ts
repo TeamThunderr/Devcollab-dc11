@@ -7,6 +7,7 @@ export interface Workspace {
   slug: string;
   description: string | null;
   createdBy: number;
+  ownerId?: number;
   createdAt: string;
 }
 
@@ -65,6 +66,8 @@ export interface WorkspaceMember {
   avatarUrl?: string | null;
   role: string;
   joinedAt: string;
+  createdAt?: string;
+  status?: string;
 }
 
 export function useWorkspaceMembers(workspaceId: number | undefined) {
@@ -72,7 +75,11 @@ export function useWorkspaceMembers(workspaceId: number | undefined) {
     queryKey: ['workspace-members', workspaceId],
     queryFn: async () => {
       const { data } = await api.get<WorkspaceMember[]>(`/api/workspaces/${workspaceId}/members`);
-      return data;
+      return data.map(m => ({
+        ...m,
+        status: (m as any).status || 'Active',
+        createdAt: (m as any).createdAt || m.joinedAt
+      }));
     },
     enabled: !!workspaceId,
   });
@@ -134,12 +141,18 @@ export function useInviteMember() {
 export function useJoinWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (slug: string) => {
-      const { data } = await api.post<{ workspaceId: number; joined: boolean }>(`/api/workspaces/join/${slug}`);
+    mutationFn: async (params: { slug: string; code: string } | string) => {
+      const slug = typeof params === 'string' ? params : params.slug;
+      const code = typeof params === 'string' ? params : params.code;
+      const { data } = await api.post<{ workspaceId: number; joined: boolean }>(`/api/workspaces/join/${slug}`, { code });
       return data;
     },
-    onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
+      if (data?.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: ['workspace-members', data.workspaceId] });
+      }
     },
   });
 }

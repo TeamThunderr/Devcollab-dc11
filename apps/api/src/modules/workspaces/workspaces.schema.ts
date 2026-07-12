@@ -43,12 +43,12 @@ export const workspaceStatsResponseSchema = z.object({
 
 export const addMemberSchema = z.object({
   userId: z.number(),
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']).default('MEMBER'),
+  role: z.preprocess((val: any) => typeof val === 'string' ? val.toUpperCase() : val, z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']).default('MEMBER')),
 })
 
 export const inviteMemberSchema = z.object({
   email: z.string().email(),
-  role: z.enum(['ADMIN', 'MEMBER', 'VIEWER']).default('MEMBER'),
+  role: z.preprocess((val: any) => typeof val === 'string' ? val.toUpperCase() : val, z.enum(['ADMIN', 'MEMBER', 'VIEWER']).default('MEMBER')),
 })
 
 export const joinWorkspaceSchema = z.object({
@@ -64,7 +64,7 @@ export const rejectInvitationBodySchema = z.object({
 })
 
 export const updateMemberRoleSchema = z.object({
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']),
+  role: z.preprocess((val: any) => typeof val === 'string' ? val.toUpperCase() : val, z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])),
 })
 
 export const memberResponseSchema = z.object({

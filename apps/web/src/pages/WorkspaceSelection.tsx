@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, UserPlus, Zap, Building, Users, FolderOpen, ArrowRight } from "lucide-react";
+import { Search, Plus, UserPlus, Zap, Building, Users, FolderOpen, ArrowRight, X, Sparkles, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useMyWorkspaces, WorkspaceMy } from "../hooks/useWorkspaces";
+import { useMyWorkspaces, WorkspaceMy, useCreateWorkspace, useJoinWorkspace } from "../hooks/useWorkspaces";
 import { useStore } from "../store/useStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeContext } from "../context/ThemeContext";
 import { CreateWorkspaceModal } from "../components/common/CreateWorkspaceModal";
+import { JoinWorkspaceModal } from "../components/common/JoinWorkspaceModal";
 
 export function WorkspaceSelection() {
   const { currentUser } = useAuth();
@@ -20,6 +21,7 @@ export function WorkspaceSelection() {
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
   const filteredWorkspaces = workspaces?.filter(w => 
     w.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
@@ -29,9 +31,7 @@ export function WorkspaceSelection() {
     updateWorkspace({ name: workspace.name, slug: workspace.slug, description: "" });
     queryClient.invalidateQueries();
     
-    // Simulate socket reconnect / workspace change event
     window.dispatchEvent(new Event("workspace:changed"));
-    
     navigate("/dashboard");
   };
 
@@ -44,8 +44,7 @@ export function WorkspaceSelection() {
   };
 
   const handleJoinWorkspace = () => {
-    // In a complete implementation, this would open a JoinWorkspaceModal.
-    alert("Join workspace modal would open here");
+    setIsJoinOpen(true);
   };
 
   if (isLoading) {
@@ -105,6 +104,7 @@ export function WorkspaceSelection() {
         </motion.div>
         
         <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+        <JoinWorkspaceModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
       </div>
     );
   }
@@ -142,67 +142,67 @@ export function WorkspaceSelection() {
         </motion.div>
       </div>
 
-      {/* Search (only if > 5 workspaces) */}
-      {(workspaces?.length || 0) > 5 && (
-        <div className="w-full max-w-5xl mb-8 relative">
-          <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
-          <input 
-            type="text" 
-            placeholder="Search workspaces..." 
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className={`w-full max-w-md pl-11 pr-4 py-3 rounded-xl border outline-none transition-all ${
-              isDark 
-                ? "bg-[#111] border-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/30 placeholder:text-gray-600" 
-                : "bg-white border-black/10 focus:border-black/30 focus:ring-1 focus:ring-black/30 shadow-sm placeholder:text-gray-400"
-            }`}
-          />
-        </div>
-      )}
+          {/* Search (only if > 5 workspaces) */}
+          {(workspaces?.length || 0) > 5 && (
+            <div className="w-full max-w-5xl mb-8 relative">
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
+              <input 
+                type="text" 
+                placeholder="Search workspaces..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className={`w-full max-w-md pl-11 pr-4 py-3 rounded-xl border outline-none transition-all ${
+                  isDark 
+                    ? "bg-[#111] border-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/30 placeholder:text-gray-600" 
+                    : "bg-white border-black/10 focus:border-black/30 focus:ring-1 focus:ring-black/30 shadow-sm placeholder:text-gray-400"
+                }`}
+              />
+            </div>
+          )}
 
-      {/* Grid */}
-      <div className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-        <AnimatePresence>
-          {filteredWorkspaces.map((workspace, index) => (
-            <motion.div
-              key={workspace.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => handleOpenWorkspace(workspace)}
-              className={`group cursor-pointer rounded-2xl border p-5 md:p-6 transition-all duration-300 hover:scale-[1.02] flex flex-col ${
-                isDark 
-                  ? "bg-[#0a0a0a] border-white/10 hover:border-white/20 hover:bg-[#111]" 
-                  : "bg-white border-black/10 hover:border-black/20 hover:shadow-lg shadow-sm"
-              }`}
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm ${
-                  workspace.logo ? "" : isDark ? "bg-white/10 text-white" : "bg-black/5 text-black"
-                }`}>
-                  {workspace.logo ? (
-                    <img src={workspace.logo} alt={workspace.name} className="w-full h-full object-cover rounded-xl" />
-                  ) : (
-                    workspace.name.substring(0, 2).toUpperCase()
-                  )}
-                </div>
-                <div className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full ${
-                  workspace.plan === 'PRO' 
-                    ? "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20" 
-                    : isDark ? "bg-white/10 text-gray-300" : "bg-black/5 text-gray-600"
-                }`}>
-                  {workspace.plan}
-                </div>
-              </div>
+          {/* Grid */}
+          <div className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            <AnimatePresence>
+              {filteredWorkspaces.map((workspace, index) => (
+                <motion.div
+                  key={workspace.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => handleOpenWorkspace(workspace)}
+                  className={`group cursor-pointer rounded-2xl border p-5 md:p-6 transition-all duration-300 hover:scale-[1.02] flex flex-col ${
+                    isDark 
+                      ? "bg-[#0a0a0a] border-white/10 hover:border-white/20 hover:bg-[#111]" 
+                      : "bg-white border-black/10 hover:border-black/20 hover:shadow-lg shadow-sm"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm ${
+                      workspace.logo ? "" : isDark ? "bg-white/10 text-white" : "bg-black/5 text-black"
+                    }`}>
+                      {workspace.logo ? (
+                        <img src={workspace.logo} alt={workspace.name} className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        workspace.name.substring(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <div className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full ${
+                      workspace.plan === 'PRO' 
+                        ? "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20" 
+                        : isDark ? "bg-white/10 text-gray-300" : "bg-black/5 text-gray-600"
+                    }`}>
+                      {workspace.plan}
+                    </div>
+                  </div>
 
-              <div className="mb-4 flex-grow">
-                <h3 className="font-semibold text-lg mb-1 truncate">{workspace.name}</h3>
-                <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-medium">
-                  <Building className="w-3.5 h-3.5" />
-                  {workspace.role}
-                </div>
-              </div>
+                  <div className="mb-4 flex-grow">
+                    <h3 className="font-semibold text-lg mb-1 truncate">{workspace.name}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-medium">
+                      <Building className="w-3.5 h-3.5" />
+                      {workspace.role}
+                    </div>
+                  </div>
 
               <div className={`flex items-center gap-4 text-sm mt-auto pt-4 border-t ${
                 isDark ? "border-white/10 text-gray-400" : "border-black/5 text-gray-500"
@@ -233,6 +233,8 @@ export function WorkspaceSelection() {
       </div>
 
       <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <JoinWorkspaceModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
     </div>
   );
 }
+

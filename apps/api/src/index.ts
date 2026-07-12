@@ -14,6 +14,7 @@ import { usersRoutes } from './modules/users/users.routes.js'
 import { workspacesRoutes } from './modules/workspaces/workspaces.routes.js'
 import { projectsRoutes, singleProjectRoutes } from './modules/projects/projects.routes.js'
 import { projectTasksRoutes, singleTaskRoutes } from './modules/tasks/tasks.routes.js'
+import { projectChatRoutes } from './modules/chat/chat.routes.js'
 import { projectLabelsRoutes, singleLabelRoutes, taskLabelsRoutes } from './modules/labels/labels.routes.js'
 import { taskRelationsRoutes } from './modules/task-relations/task-relations.routes.js'
 import { taskAttachmentsRoutes, singleAttachmentRoutes } from './modules/attachments/attachments.routes.js'
@@ -42,6 +43,13 @@ const app = Fastify({
 // ── Zod type provider for native Zod request/response validation in routes ──
 app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
+
+// Disable browser/proxy caching for API responses to ensure real-time role & data updates in production
+app.addHook('onSend', async (_request, reply, _payload) => {
+  reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  reply.header('Pragma', 'no-cache')
+  reply.header('Expires', '0')
+})
 
 // ── Global error handler — Fault Control ─────────────────────────────────────
 app.setErrorHandler((error, _request, reply) => {
@@ -88,6 +96,7 @@ await app.register(workspacesRoutes, { prefix: '/api/workspaces' })
 await app.register(projectsRoutes, { prefix: '/api/workspaces/:workspaceId/projects' })
 await app.register(singleProjectRoutes, { prefix: '/api/projects' })
 await app.register(projectTasksRoutes, { prefix: '/api/projects/:projectId/tasks' })
+await app.register(projectChatRoutes, { prefix: '/api/projects/:projectId/chat' })
 await app.register(singleTaskRoutes, { prefix: '/api/tasks/:taskId' })
 // — Sprints —
 await app.register(projectSprintsRoutes, { prefix: '/api/projects/:projectId/sprints' })

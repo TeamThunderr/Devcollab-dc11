@@ -9,23 +9,29 @@ interface MemberCollaborationProps {
 
 export function MemberCollaboration({ projectId: propsId }: MemberCollaborationProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
+  const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
   const navigate = useNavigate();
   const activities = useStore(state => state.activities);
 
-  const projectActivities = activities.slice(0, 10);
+  const projectActivities = activities.filter(a => String(a.projectId) === String(projectId)).slice(0, 10);
 
-  const mentions = [
-    { id: "m1", author: "Bob Wilson", time: "10m ago", text: "@Alice Smith can you review PR #42 for the auth endpoints when you get a chance?", type: "mention" },
-    { id: "m2", author: "Admin User", time: "1h ago", text: "@Alice Smith assigned you to priority task 'Implement JWT Token Rotation'.", type: "assign" },
-    { id: "m3", author: "Charlie Brown", time: "Yesterday", text: "@Alice Smith great work on the database indexing script! Velocity is up 40%.", type: "kudos" },
-  ];
+  const mentions = projectActivities.filter(a => a.action?.toLowerCase().includes("mention") || a.action?.toLowerCase().includes("assign")).map(a => ({
+    id: a.id,
+    author: "Team Member",
+    time: a.timestamp ? new Date(a.timestamp).toLocaleDateString() : "Recently",
+    text: a.action,
+    type: a.action?.toLowerCase().includes("assign") ? "assign" : "mention"
+  }));
 
-  const discussions = [
-    { id: "d1", title: "Architecture RFC: Zustand vs Redux Toolkit", replies: 12, lastActive: "15m ago", status: "Open" },
-    { id: "d2", title: "API v2 Breaking Changes & Endpoint Deprecations", replies: 8, lastActive: "2h ago", status: "Open" },
-    { id: "d3", title: "Frontend Performance Optimization Sprint", replies: 24, lastActive: "Yesterday", status: "Resolved" },
-  ];
+  const discussions = projectActivities.filter(a => a.action?.toLowerCase().includes("comment") || a.action?.toLowerCase().includes("discuss")).slice(0, 5).map((a, idx) => ({
+    id: a.id || idx,
+    title: a.action,
+    replies: 1,
+    lastActive: a.timestamp ? new Date(a.timestamp).toLocaleDateString() : "Recently",
+    status: "Open"
+  }));
 
   return (
     <div className="space-y-10 pb-16 max-w-7xl mx-auto px-6 sm:px-8 md:px-12 w-full py-10">
@@ -69,27 +75,33 @@ export function MemberCollaboration({ projectId: propsId }: MemberCollaborationP
             </div>
 
             <div className="space-y-3">
-              {mentions.map(item => (
-                <div key={item.id} className="p-4 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-gray-500" /> {item.author}
-                    </span>
-                    <span className="text-[11px] text-gray-400">{item.time}</span>
-                  </div>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-white dark:bg-[#191919] p-3 rounded-md border border-gray-200 dark:border-[#2C2C2C] font-medium">
-                    {item.text}
-                  </p>
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button 
-                      onClick={() => navigate(`/projects/${projectId}/chat`)}
-                      className="text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
-                    >
-                      Reply in Chat <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
+              {mentions.length === 0 ? (
+                <div className="p-6 rounded-md border border-dashed border-gray-200 dark:border-[#2C2C2C] text-center text-gray-500 text-xs">
+                  No direct mentions or assignments logged in this project yet.
                 </div>
-              ))}
+              ) : (
+                mentions.map(item => (
+                  <div key={item.id} className="p-4 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-gray-500" /> {item.author}
+                      </span>
+                      <span className="text-[11px] text-gray-400">{item.time}</span>
+                    </div>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-white dark:bg-[#191919] p-3 rounded-md border border-gray-200 dark:border-[#2C2C2C] font-medium">
+                      {item.text}
+                    </p>
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button 
+                        onClick={() => navigate(`/projects/${projectId}/chat`)}
+                        className="text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
+                      >
+                        Reply in Chat <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -109,25 +121,31 @@ export function MemberCollaboration({ projectId: propsId }: MemberCollaborationP
             </div>
 
             <div className="space-y-3">
-              {discussions.map(disc => (
-                <div
-                  key={disc.id}
-                  onClick={() => navigate(`/projects/${projectId}/chat`)}
-                  className="p-4 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 hover:bg-gray-100 dark:hover:bg-[#2C2C2C] transition-all cursor-pointer flex items-center justify-between gap-4 group"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <span className="text-xs font-semibold text-gray-900 dark:text-white block truncate group-hover:underline transition-all">
-                      {disc.title}
-                    </span>
-                    <span className="text-[11px] text-gray-500 flex items-center gap-2">
-                      <span>{disc.replies} replies</span> • <span>Last active {disc.lastActive}</span>
+              {discussions.length === 0 ? (
+                <div className="p-6 rounded-md border border-dashed border-gray-200 dark:border-[#2C2C2C] text-center text-gray-500 text-xs">
+                  No active discussion threads yet. Click Start Thread to open one in chat.
+                </div>
+              ) : (
+                discussions.map(disc => (
+                  <div
+                    key={disc.id}
+                    onClick={() => navigate(`/projects/${projectId}/chat`)}
+                    className="p-4 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 hover:bg-gray-100 dark:hover:bg-[#2C2C2C] transition-all cursor-pointer flex items-center justify-between gap-4 group"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white block truncate group-hover:underline transition-all">
+                        {disc.title}
+                      </span>
+                      <span className="text-[11px] text-gray-500 flex items-center gap-2">
+                        <span>{disc.replies} replies</span> • <span>Last active {disc.lastActive}</span>
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0 border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-gray-700 dark:text-gray-300">
+                      {disc.status}
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0 border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-gray-700 dark:text-gray-300">
-                    {disc.status}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -72,7 +72,7 @@ export function ProjectOverview() {
           transition={{ duration: 0.3, ease: "easeOut" as const }}
           className="w-full"
         >
-          {role === "ADMIN" && <AdminDashboard projectId={targetProjectId} />}
+          {(role === "ADMIN" || role === "OWNER") && <AdminDashboard projectId={targetProjectId} />}
           {role === "MEMBER" && <MemberOverview projectId={targetProjectId} />}
           {role === "VIEWER" && <ViewerOverview projectId={targetProjectId} />}
         </motion.div>

@@ -193,6 +193,22 @@ export const taskComments = pgTable('task_comments', {
   userIdx: index('task_comments_user_id_idx').on(t.userId),
 }))
 
+// --- CHAT MESSAGES ---
+export const chatMessages = pgTable('chat_messages', {
+  id: serial('id').primaryKey(),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  channel: varchar('channel', { length: 100 }).default('general').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  projectIdx: index('chat_messages_project_id_idx').on(t.projectId),
+  userIdx: index('chat_messages_user_id_idx').on(t.userId),
+  channelIdx: index('chat_messages_channel_idx').on(t.channel),
+}))
+
+
 // --- CODE SNIPPETS ---
 export const codeSnippets = pgTable('code_snippets', {
   id: serial('id').primaryKey(),

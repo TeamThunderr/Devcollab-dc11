@@ -4,6 +4,8 @@ import { env } from '../config/env.js'
 import { createLogger } from '../lib/logger.js'
 import { verifyToken } from '../lib/jwt.js'
 import { setIO } from './io.js'
+import { projectsService } from '../modules/projects/projects.service.js'
+import { chatService } from '../modules/chat/chat.service.js'
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -68,7 +70,9 @@ export function initSocket(httpServer: HttpServer): TypedIO {
 
     // ── Workspace Rooms ─────────────────────────────────────────────────────
     socket.on('workspace:join', (workspaceId) => {
-      const room = `workspace:${workspaceId}`
+      const numId = Number(workspaceId)
+      if (isNaN(numId)) return
+      const room = `workspace:${numId}`
       socket.join(room)
       logger.debug({ userId, room }, 'Joined workspace room')
 
@@ -77,7 +81,9 @@ export function initSocket(httpServer: HttpServer): TypedIO {
     })
 
     socket.on('workspace:leave', (workspaceId) => {
-      const room = `workspace:${workspaceId}`
+      const numId = Number(workspaceId)
+      if (isNaN(numId)) return
+      const room = `workspace:${numId}`
       socket.leave(room)
       logger.debug({ userId, room }, 'Left workspace room')
 
@@ -85,20 +91,41 @@ export function initSocket(httpServer: HttpServer): TypedIO {
     })
 
     // ── Project Rooms ───────────────────────────────────────────────────────
-    socket.on('project:join', (projectId) => {
-      const room = `project:${projectId}`
-      socket.join(room)
-      logger.debug({ userId, room }, 'Joined project room')
-
-      socket.to(room).emit('user:joined', { userId, roomId: room })
+    socket.on('project:join', async (projectId) => {
+      const numId = Number(projectId)
+      if (isNaN(numId)) return
+      try {
+        await projectsService.checkProjectPermission(numId, userId)
+        const room = `project:${numId}`
+        socket.join(room)
+        logger.debug({ userId, room }, 'Joined project room')
+        socket.to(room).emit('user:joined', { userId, roomId: room })
+      } catch (err) {
+        logger.warn({ userId, projectId: numId }, 'Unauthorized project:join attempt')
+        socket.emit('error', { message: 'Unauthorized to join project chat' })
+      }
     })
 
     socket.on('project:leave', (projectId) => {
-      const room = `project:${projectId}`
+      const numId = Number(projectId)
+      if (isNaN(numId)) return
+      const room = `project:${numId}`
       socket.leave(room)
       logger.debug({ userId, room }, 'Left project room')
 
       socket.to(room).emit('user:left', { userId, roomId: room })
+    })
+
+    socket.on('chat:send', async (payload) => {
+      try {
+        await chatService.sendMessage(payload.projectId, userId, {
+          channel: payload.channel || 'general',
+          content: payload.content,
+        })
+      } catch (err: any) {
+        logger.warn({ userId, projectId: payload.projectId, err }, 'Unauthorized chat:send attempt')
+        socket.emit('error', { message: err.message || 'Unauthorized to send chat message' })
+      }
     })
 
     // ── Live Cursor / Presence ──────────────────────────────────────────────

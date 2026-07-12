@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { db } from '../../db/client.js'
 import { codeSnippets, projects, attachments } from '../../db/schema.js'
 import { AppError } from '../../lib/errors.js'
-import { workspacesService } from '../workspaces/workspaces.service.js'
+import { projectsService } from '../projects/projects.service.js'
 import { embeddingsService } from '../ai/embeddings.service.js'
 import { emitToProject } from '../../socket/emit.js'
 import { activityService } from '../activity/activity.service.js'
@@ -17,8 +17,7 @@ export const snippetsService = {
   },
 
   async createSnippet(projectId: number, userId: number, data: CreateSnippetInput) {
-    const workspaceId = await this.getProjectWorkspaceId(projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER'])
+    await projectsService.checkProjectPermission(projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
 
     const [snippet] = await db
       .insert(codeSnippets)
@@ -42,6 +41,7 @@ export const snippetsService = {
       }
     }).catch(console.error)
 
+    const workspaceId = await this.getProjectWorkspaceId(projectId)
     // Emit real-time event
     emitToProject(projectId, 'snippet:created', {
       snippetId: snippet.id,
@@ -64,8 +64,7 @@ export const snippetsService = {
   },
 
   async getSnippets(projectId: number, userId: number) {
-    const workspaceId = await this.getProjectWorkspaceId(projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    await projectsService.checkProjectPermission(projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER', 'VIEWER'])
 
     return await db.query.codeSnippets.findMany({
       where: eq(codeSnippets.projectId, projectId),
@@ -79,8 +78,7 @@ export const snippetsService = {
     })
     if (!snippet) throw new AppError(404, 'NOT_FOUND', 'Snippet not found')
 
-    const workspaceId = await this.getProjectWorkspaceId(snippet.projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    await projectsService.checkProjectPermission(snippet.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER', 'VIEWER'])
 
     return snippet
   },
@@ -91,8 +89,7 @@ export const snippetsService = {
     })
     if (!snippet) throw new AppError(404, 'NOT_FOUND', 'Snippet not found')
 
-    const workspaceId = await this.getProjectWorkspaceId(snippet.projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER'])
+    await projectsService.checkProjectPermission(snippet.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
 
     const [updated] = await db
       .update(codeSnippets)
@@ -110,14 +107,15 @@ export const snippetsService = {
     if (!updated) throw new AppError(500, 'INTERNAL_SERVER_ERROR', 'Failed to update snippet')
 
     // Update embedding if title, language, description, or code changed (fire-and-forget)
-    if (updated && (data.title !== undefined || data.language !== undefined || data.description !== undefined || data.code !== undefined)) {
+    if (data.title !== undefined || data.language !== undefined || data.description !== undefined || data.code !== undefined) {
       embeddingsService.generateSnippetEmbedding(updated.title, updated.language, updated.description, updated.code).then((embedding) => {
         if (embedding.length > 0) {
-          db.update(codeSnippets).set({ embedding }).where(eq(codeSnippets.id, snippetId)).execute().catch(console.error)
+          db.update(codeSnippets).set({ embedding }).where(eq(codeSnippets.id, updated.id)).execute().catch(console.error)
         }
       }).catch(console.error)
     }
 
+    const workspaceId = await this.getProjectWorkspaceId(snippet.projectId)
     // Emit real-time event
     emitToProject(updated.projectId, 'snippet:updated', {
       snippetId,
@@ -126,8 +124,6 @@ export const snippetsService = {
       data: updated as unknown as Record<string, unknown>,
     })
 
-    if (!updated) throw new AppError(404, 'NOT_FOUND', 'Snippet not found')
-
     activityService.logActivity({
       workspaceId,
       projectId: snippet.projectId,
@@ -135,7 +131,6 @@ export const snippetsService = {
       actionType: 'updated a code snippet',
       metadata: { snippetId, title: updated.title },
     }).catch(() => {})
-
 
     return updated
   },
@@ -146,8 +141,7 @@ export const snippetsService = {
     })
     if (!snippet) throw new AppError(404, 'NOT_FOUND', 'Snippet not found')
 
-    const workspaceId = await this.getProjectWorkspaceId(snippet.projectId)
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER'])
+    await projectsService.checkProjectPermission(snippet.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
 
     await db.transaction(async (tx) => {
       await tx.delete(attachments).where(and(eq(attachments.entityType, 'SNIPPET'), eq(attachments.entityId, snippetId)))

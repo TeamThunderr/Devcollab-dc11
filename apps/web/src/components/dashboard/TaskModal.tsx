@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, Tag, User, AlertCircle, MessageSquare, Send, TerminalSquare, Check, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { CustomSelect } from "../ui/CustomSelect";
+import { useProjectMembers } from "../../hooks/useProjects";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -39,18 +40,28 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
 
   const activeProjectId = projectId || task?.projectId || projects[0]?.id;
   const project = projects.find(p => String(p.id) === String(activeProjectId));
+  const { data: explicitProjectMembers = [] } = useProjectMembers(activeProjectId ? Number(activeProjectId) : undefined);
   
-  // Deduplicate project members by id
+  // Deduplicate and strictly filter project members by explicit project membership (and filter out Viewers)
   const projectMembers = React.useMemo(() => {
-    const rawList = members.filter(m => !project || !project.members || project.members.includes(String(m.id)) || project.members.includes(Number(m.id)) || project.members.length === 0);
+    const rawList = members.filter(m => {
+      const stringId = String(m.id);
+      const isExplicit = explicitProjectMembers.some(pm => String(pm.id) === stringId || String(pm.userId) === stringId || (pm.email && m.email && pm.email.toLowerCase() === m.email.toLowerCase()));
+      const isProjectMember = project?.members && project.members.length > 0 && (project.members.includes(stringId) || project.members.includes(Number(stringId)));
+      return isExplicit || isProjectMember || (explicitProjectMembers.length === 0 && (!project?.members || project.members.length === 0));
+    });
     const seen = new Set();
     return rawList.filter(m => {
       const stringId = String(m.id);
       if (seen.has(stringId)) return false;
+      const explicitRole = explicitProjectMembers.find(pm => String(pm.id) === stringId || String(pm.userId) === stringId || (pm.email && m.email && pm.email.toLowerCase() === m.email.toLowerCase()))?.role;
+      if (explicitRole?.toUpperCase() === 'VIEWER' || (!explicitRole && m.role?.toUpperCase() === 'VIEWER')) {
+        return false;
+      }
       seen.add(stringId);
       return true;
     });
-  }, [members, project]);
+  }, [members, project, explicitProjectMembers]);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -102,19 +113,20 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
       toast.error("Please enter a task title");
       return;
     }
-    if (!isAdmin) {
-      toast.error("Only Admins can create tasks");
+    if (role?.toUpperCase() === "VIEWER") {
+      toast.error("Viewers cannot create tasks");
       return;
     }
 
     setIsSubmitting(true);
     try {
       const fullDesc = description + (estimatedTime || label ? `\n\n[Meta] Est: ${estimatedTime} | Tag: ${label}` : "");
-      await createTask(activeProjectId!, title.trim(), assigneeId || undefined, priority, dueDate || undefined, fullDesc);
+      await createTask(activeProjectId!, title.trim(), assigneeId || undefined, priority, dueDate || undefined, fullDesc, status);
       toast.success("Task created successfully!");
       onClose();
-    } catch (err) {
-      toast.error("Failed to create task");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to create task";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -126,7 +138,8 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
 
     setIsSubmitting(true);
     try {
-      if (isAdmin) {
+      const isTaskCreator = String(task.createdBy) === String(currentUserId);
+      if (isAdmin || isTaskCreator) {
         await updateTask(task.id, {
           title: title.trim(),
           description,
@@ -136,13 +149,14 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
           dueDate: dueDate || null,
         });
       } else {
-        // Member can only update status
+        // Assigned Member can update status
         await updateTaskStatus(task.id, status);
       }
       toast.success("Task updated successfully!");
       onClose();
-    } catch (err) {
-      toast.error("Failed to update task");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to update task";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
