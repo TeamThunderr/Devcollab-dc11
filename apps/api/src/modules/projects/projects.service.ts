@@ -424,6 +424,12 @@ export const projectsService = {
 
     if (!updated) throw new AppError(404, 'NOT_FOUND', 'Project member not found')
 
+    emitToProject(projectId, 'project:member_updated', {
+      projectId,
+      userId: targetUserId,
+      role: data.role,
+    })
+
     return updated
   },
 

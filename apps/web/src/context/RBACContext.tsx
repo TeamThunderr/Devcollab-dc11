@@ -117,8 +117,8 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
     (m.email && currentUser?.email && m.email.toLowerCase() === currentUser.email.toLowerCase())
   );
 
-  // Default to null while loading to avoid premature MEMBER assignment for Viewers
-  let workspaceRole: Role = isWsMembersLoading && !isWorkspaceOwner && !currentWsMember ? "VIEWER" : "MEMBER";
+  // Default to VIEWER to avoid accidental permission escalation
+  let workspaceRole: Role = "VIEWER";
   if (isWorkspaceOwner) {
     workspaceRole = "OWNER";
   } else if (currentWsMember?.role) {
@@ -161,8 +161,8 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
           role = "VIEWER";
         }
       } else {
-        // User is not explicitly in projectMembers — fall back to their workspace role
-        role = workspaceRole;
+        // User is not explicitly in projectMembers — fall back to VIEWER to prevent leaking MEMBER UX
+        role = "VIEWER";
       }
     }
     // While isProjectMembersLoading === true, keep role === workspaceRole (stable until data arrives)
