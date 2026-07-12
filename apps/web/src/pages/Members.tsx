@@ -68,6 +68,10 @@ export function Members() {
     if (!inviteEmail.trim()) return;
     setIsInviting(true);
     await addMember(workspaceId, inviteEmail.trim(), inviteRole, inviteName.trim() || undefined);
+    queryClient.invalidateQueries({ queryKey: ['workspace-members'] });
+    queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
+    queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    refetchWsMembers();
     toast.success(`Invited ${inviteEmail} to the team!`);
     setInviteEmail("");
     setInviteName("");
