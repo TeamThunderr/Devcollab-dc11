@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../context/ThemeContext";
 import { Github, Mail, Lock, Sun, Moon, ArrowRight, Zap, Layers, Sparkles, Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import { useRole } from "../context/RBACContext";
 import { useAuth } from "../context/AuthContext";
@@ -32,12 +32,20 @@ export function AuthPage() {
   
   const isDark = theme === "dark";
 
+  const location = useLocation();
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (location.state?.from) {
+      localStorage.setItem('returnTo', location.state.from);
+    }
+  }, [location]);
 
   useEffect(() => {
     if (authStep === "OTP" && countdown > 0) {

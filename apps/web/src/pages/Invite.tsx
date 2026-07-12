@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,9 +10,10 @@ import { useQueryClient } from '@tanstack/react-query';
 export function Invite() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { setActiveWorkspace } = useStore();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(searchParams.get('code') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { Landing } from "../pages/Landing";
 import { AuthPage } from "../pages/AuthPage";
 import { ForgotPassword } from "../pages/ForgotPassword";
@@ -42,8 +42,9 @@ import { Loader2 } from "lucide-react";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { currentUser, isLoading } = useAuth();
+  const location = useLocation();
   if (isLoading) return <div className="h-screen w-full flex items-center justify-center bg-white dark:bg-[#191919]"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
-  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!currentUser) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
   return <>{children}</>;
 }
 

@@ -430,7 +430,7 @@ export const workspacesService = {
       expiresAt
     })
     const rejectUrl = `${env.FRONTEND_URL}/reject-invite?slug=${workspace.slug}&email=${input.email}`
-    const inviteUrl = `${env.FRONTEND_URL}/invite/${workspace.slug}`
+    const inviteUrl = `${env.FRONTEND_URL}/invite/${workspace.slug}?code=${invitationCode}`
 
     await emailService.sendWorkspaceInvite(
       input.email, 
