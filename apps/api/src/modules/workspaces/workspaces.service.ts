@@ -7,6 +7,7 @@ import type { AddMemberInput, CreateWorkspaceInput, UpdateMemberRoleInput, Updat
 import { emailService } from '../auth/email.service.js'
 import crypto from 'crypto'
 import { emitToWorkspace } from '../../socket/emit.js'
+import { env } from '../../config/env.js'
 
 export const workspacesService = {
   async createWorkspace(userId: number, data: CreateWorkspaceInput) {
@@ -308,9 +309,8 @@ export const workspacesService = {
       status: 'PENDING',
       expiresAt
     })
-
-    const rejectUrl = `http://localhost:5173/reject-invite?slug=${workspace.slug}&email=${input.email}`
-    const inviteUrl = `http://localhost:5173/invite/${workspace.slug}`
+    const rejectUrl = `${env.FRONTEND_URL}/reject-invite?slug=${workspace.slug}&email=${input.email}`
+    const inviteUrl = `${env.FRONTEND_URL}/invite/${workspace.slug}`
 
     await emailService.sendWorkspaceInvite(
       input.email, 
