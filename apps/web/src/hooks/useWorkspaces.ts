@@ -7,6 +7,7 @@ export interface Workspace {
   slug: string;
   description: string | null;
   createdBy: number;
+  ownerId?: number;
   createdAt: string;
 }
 
@@ -134,12 +135,18 @@ export function useInviteMember() {
 export function useJoinWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (slug: string) => {
-      const { data } = await api.post<{ workspaceId: number; joined: boolean }>(`/api/workspaces/join/${slug}`);
+    mutationFn: async (params: { slug: string; code: string } | string) => {
+      const slug = typeof params === 'string' ? params : params.slug;
+      const code = typeof params === 'string' ? params : params.code;
+      const { data } = await api.post<{ workspaceId: number; joined: boolean }>(`/api/workspaces/join/${slug}`, { code });
       return data;
     },
-    onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
+      if (data?.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: ['workspace-members', data.workspaceId] });
+      }
     },
   });
 }

@@ -101,6 +101,12 @@ export function useSocket(projectId?: number | string, workspaceId?: number | st
     newSocket.on('comment:added', invalidateComments);
     newSocket.on('comment:deleted', invalidateComments);
 
+    // Chat events
+    const invalidateChat = () => {
+      queryClient.invalidateQueries({ queryKey: ['project-chat'] });
+    };
+    newSocket.on('chat:message', invalidateChat);
+
     // Notifications events
     const invalidateNotifications = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

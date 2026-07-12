@@ -83,8 +83,8 @@ export function useBackendSync() {
         members,
         activities,
         notifications,
-        snippets: snippets.length > 0 ? snippets : undefined,
-        docs: docs.length > 0 ? docs : undefined,
+        snippets,
+        docs,
       });
     } catch (err) {
       console.error("Failed to sync backend data into store:", err);

@@ -75,13 +75,20 @@ interface RBACContextType {
 }
 
 import { useStore } from "../store/useStore";
+import { useLocation } from "react-router-dom";
+import { useWorkspaces, useWorkspaceMembers } from "../hooks/useWorkspaces";
+import { useProjectMembers } from "../hooks/useProjects";
 
 const RBACContext = createContext<RBACContextType | undefined>(undefined);
 
 export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const { currentUser } = useAuth();
-  const members = useStore(state => state.members);
+  const location = useLocation();
+  const { activeWorkspaceId, members: storeMembers } = useStore();
   
+  const { data: workspaces } = useWorkspaces();
+  const { data: wsMembers } = useWorkspaceMembers(activeWorkspaceId ? Number(activeWorkspaceId) : undefined);
+
   const [manualRole, setManualRole] = useState<Role | null>(() => {
     const saved = localStorage.getItem("devcollab_role");
     return saved ? (saved as Role) : null;
@@ -93,18 +100,63 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const currentUserId = currentUser?.id?.toString() || "";
-  
-  // Find current user's role in the active workspace
-  const currentMember = members.find(m => 
+  const activeWorkspace = workspaces?.find(w => Number(w.id) === Number(activeWorkspaceId)) || workspaces?.[0];
+
+  // Check workspace ownership first (highest priority)
+  const isWorkspaceOwner = Boolean(
+    activeWorkspace && currentUserId && (Number(activeWorkspace.ownerId || activeWorkspace.createdBy) === Number(currentUserId))
+  );
+
+  // Combine store members and query members
+  const memberList = (wsMembers && wsMembers.length > 0) ? wsMembers : storeMembers;
+  const currentWsMember = memberList.find((m: any) => 
     (m.id && String(m.id) === currentUserId) || 
+    (m.userId && String(m.userId) === currentUserId) ||
     (m.email && currentUser?.email && m.email.toLowerCase() === currentUser.email.toLowerCase())
   );
-  
-  let role: Role = "MEMBER";
-  if (manualRole) {
-    role = manualRole;
-  } else if (currentMember?.role) {
-    role = currentMember.role.toUpperCase() as Role;
+
+  let workspaceRole: Role = "MEMBER";
+  if (isWorkspaceOwner) {
+    workspaceRole = "OWNER";
+  } else if (currentWsMember?.role) {
+    const rawRole = currentWsMember.role.toUpperCase();
+    if (rawRole === "OWNER" || rawRole === "ADMIN" || rawRole === "MEMBER" || rawRole === "VIEWER") {
+      workspaceRole = rawRole as Role;
+    } else if (rawRole === "TEAM_LEAD") {
+      workspaceRole = "ADMIN";
+    }
+  } else if (manualRole) {
+    workspaceRole = manualRole;
+  }
+
+  // Check if inside a project route
+  const projectMatch = location.pathname.match(/\/projects\/(\d+)/);
+  const currentProjectId = projectMatch ? Number(projectMatch[1]) : null;
+  const { data: projectMembersList = [] } = useProjectMembers(currentProjectId || undefined);
+
+  let role: Role = workspaceRole;
+  if (currentProjectId && currentProjectId > 0) {
+    if (workspaceRole === "OWNER" || workspaceRole === "ADMIN") {
+      // Workspace Admin/Owner has automatic full Admin UX in all projects
+      role = workspaceRole;
+    } else {
+      // For workspace members or viewers, check their explicit project membership
+      const currentProjMember = projectMembersList.find((pm: any) =>
+        (pm.id && String(pm.id) === currentUserId) ||
+        (pm.userId && String(pm.userId) === currentUserId) ||
+        (pm.email && currentUser?.email && pm.email.toLowerCase() === currentUser.email.toLowerCase())
+      );
+      if (currentProjMember?.role) {
+        const rawProjRole = currentProjMember.role.toUpperCase();
+        if (rawProjRole === "OWNER" || rawProjRole === "ADMIN" || rawProjRole === "TEAM_LEAD") {
+          role = "ADMIN";
+        } else if (rawProjRole === "MEMBER") {
+          role = "MEMBER";
+        } else if (rawProjRole === "VIEWER") {
+          role = "VIEWER";
+        }
+      }
+    }
   }
 
   const permissions = buildPermissionsForRole(role, currentUserId);

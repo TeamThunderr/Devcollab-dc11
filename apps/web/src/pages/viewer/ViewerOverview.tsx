@@ -1,5 +1,5 @@
 import React from "react";
-import { useStore } from "../../store/useStore";
+import { useStore, toFrontendStatus } from "../../store/useStore";
 import { Award, TrendingUp, ArrowRight, Layers, Users } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { StatsGrid } from "../../components/dashboard/StatsGrid";
@@ -10,18 +10,19 @@ interface ViewerOverviewProps {
 
 export function ViewerOverview({ projectId: propsId }: ViewerOverviewProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
-  const navigate = useNavigate();
   const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
+  const navigate = useNavigate();
   const tasks = useStore(state => state.tasks);
   const members = useStore(state => state.members);
 
-  const project = projects.find(p => p.id === projectId) || projects[0];
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
+  const project = projects.find(p => String(p.id) === String(projectId)) || projects[0];
+  const projectTasks = tasks.filter(t => String(t.projectId) === String(projectId));
   
-  const completedTasks = projectTasks.filter(t => t.status === "Done");
-  const inProgressTasks = projectTasks.filter(t => t.status === "In Progress");
-  const completionRate = projectTasks.length > 0 ? Math.round((completedTasks.length / projectTasks.length) * 100) : 85;
+  const completedTasks = projectTasks.filter(t => toFrontendStatus(t.status) === "Done");
+  const inProgressTasks = projectTasks.filter(t => toFrontendStatus(t.status) === "In Progress");
+  const completionRate = projectTasks.length > 0 ? Math.round((completedTasks.length / projectTasks.length) * 100) : 0;
 
   return (
     <div className="space-y-12 pb-16">

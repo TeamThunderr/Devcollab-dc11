@@ -18,10 +18,10 @@ import {
 import { useNavigate } from "react-router-dom";
 
 interface ViewerDashboardProps {
-  projectId: string;
+  projectId?: string;
 }
 
-export function ViewerDashboard({ projectId }: ViewerDashboardProps) {
+export function ViewerDashboard({ projectId }: ViewerDashboardProps = {}) {
   const navigate = useNavigate();
   const projects = useStore(state => state.projects);
   const tasks = useStore(state => state.tasks);

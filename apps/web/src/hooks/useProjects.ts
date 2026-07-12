@@ -106,3 +106,17 @@ export function useRemoveProjectMember() {
     },
   });
 }
+
+export function useUpdateProjectMemberRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, userId, role }: { projectId: number; userId: number; role: string }) => {
+      const { data } = await api.patch(`/api/projects/${projectId}/members/${userId}`, { role });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectMembers', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+}

@@ -654,6 +654,7 @@ export function Editor() {
                     automaticLayout: true,
                     wordWrap: "on",
                     padding: { top: 12 },
+                    readOnly: !perms.canCollaborate,
                   }}
                 />
               </div>

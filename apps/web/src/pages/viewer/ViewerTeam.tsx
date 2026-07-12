@@ -9,10 +9,11 @@ interface ViewerTeamProps {
 
 export function ViewerTeam({ projectId: propsId }: ViewerTeamProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
-  const members = useStore(state => state.members);
   const projects = useStore(state => state.projects);
-  const project = projects.find(p => p.id === projectId) || projects[0];
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
+  const members = useStore(state => state.members);
+  const project = projects.find(p => String(p.id) === String(projectId)) || projects[0];
 
   return (
     <div className="space-y-10 pb-16 max-w-7xl mx-auto px-6 sm:px-8 md:px-12 w-full py-10">

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useStore, TaskStatus } from "../../store/useStore";
+import { useStore, TaskStatus, toFrontendStatus } from "../../store/useStore";
 import { CheckCircle2, Clock, Play, Check, GitPullRequest, CheckCheck, TerminalSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
@@ -12,23 +12,26 @@ interface MemberTasksProps {
 
 export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
   const { projectId: routeId } = useParams();
-  const projectId = propsId || routeId || 'p1';
+  const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
+  const projectId = propsId || routeId || activeProject?.id;
   const navigate = useNavigate();
   const { currentUserId } = useRole();
   const tasks = useStore(state => state.tasks);
   const updateTaskStatus = useStore(state => state.updateTaskStatus);
 
   const projectTasks = tasks.filter(t => String(t.projectId) === String(projectId));
-  const myTasks = projectTasks.filter(t => !t.assigneeId || String(t.assigneeId) === String(currentUserId) || String(t.assigneeId) === 'm2');
+  const myTasks = projectTasks.filter(t => t.assigneeId && (String(t.assigneeId) === String(currentUserId) || Number(t.assigneeId) === Number(currentUserId)));
 
   const [activeTab, setActiveTab] = useState<"ALL" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE">("ALL");
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
 
   const filteredTasks = myTasks.filter(t => {
-    if (activeTab === "TODO") return t.status === "To Do";
-    if (activeTab === "IN_PROGRESS") return t.status === "In Progress";
-    if (activeTab === "REVIEW") return t.status === "In Review";
-    if (activeTab === "DONE") return t.status === "Done";
+    const status = toFrontendStatus(t.status);
+    if (activeTab === "TODO") return status === "To Do";
+    if (activeTab === "IN_PROGRESS") return status === "In Progress";
+    if (activeTab === "REVIEW") return status === "In Review";
+    if (activeTab === "DONE") return status === "Done";
     return true;
   });
 
@@ -69,10 +72,10 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
         <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-[#2C2C2C] rounded-md border border-gray-200 dark:border-[#2C2C2C]">
           {[
             { id: "ALL", label: `All Tasks (${myTasks.length})` },
-            { id: "TODO", label: `To Do (${myTasks.filter(t => t.status === "To Do").length})` },
-            { id: "IN_PROGRESS", label: `In Progress (${myTasks.filter(t => t.status === "In Progress").length})` },
-            { id: "REVIEW", label: `In Review (${myTasks.filter(t => t.status === "In Review").length})` },
-            { id: "DONE", label: `Completed (${myTasks.filter(t => t.status === "Done").length})` },
+            { id: "TODO", label: `To Do (${myTasks.filter(t => toFrontendStatus(t.status) === "To Do").length})` },
+            { id: "IN_PROGRESS", label: `In Progress (${myTasks.filter(t => toFrontendStatus(t.status) === "In Progress").length})` },
+            { id: "REVIEW", label: `In Review (${myTasks.filter(t => toFrontendStatus(t.status) === "In Review").length})` },
+            { id: "DONE", label: `Completed (${myTasks.filter(t => toFrontendStatus(t.status) === "Done").length})` },
           ].map(tab => (
             <button
               key={tab.id}

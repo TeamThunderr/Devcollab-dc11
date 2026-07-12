@@ -15,7 +15,10 @@ interface Comment {
 }
 
 export function Snippets() {
-  const { projectId } = useParams();
+  const { projectId: routeId } = useParams();
+  const projects = useStore(state => state.projects);
+  const activeProject = projects.find(p => String(p.id) === String(routeId)) || projects[0];
+  const projectId = routeId || activeProject?.id || '1';
   const { role, currentUserId } = useRole();
   const perms = getProjectPermissions(role);
 
@@ -24,7 +27,7 @@ export function Snippets() {
   const updateSnippet = useStore(state => state.updateSnippet);
   const deleteSnippet = useStore(state => state.deleteSnippet);
 
-  const projectSnippets = allSnippets.filter(s => String(s.projectId) === String(projectId) || String(s.projectId) === 'p1');
+  const projectSnippets = allSnippets.filter(s => String(s.projectId) === String(projectId));
 
   // Local state
   const [selectedSnippet, setSelectedSnippet] = useState<Snippet | null>(null);
@@ -41,11 +44,7 @@ export function Snippets() {
   const [category, setCategory] = useState("Frontend");
 
   // Comments state
-  const [comments, setComments] = useState<Record<string, Comment[]>>({
-    "1": [
-      { id: "c1", authorName: "Alice Smith", content: "Great utility! We should use this in the Auth module.", createdAt: "2 hours ago" }
-    ]
-  });
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [newCommentText, setNewCommentText] = useState("");
 
   const filteredSnippets = projectSnippets.filter(s => {
@@ -88,7 +87,7 @@ export function Snippets() {
 
     try {
       if (isCreating) {
-        await createSnippet(projectId || 'p1', title.trim(), code.trim(), language, [category]);
+        await createSnippet(projectId, title.trim(), code.trim(), language, [category]);
         toast.success("Snippet created successfully!");
       } else if (isEditing && selectedSnippet) {
         await updateSnippet(selectedSnippet.id, {

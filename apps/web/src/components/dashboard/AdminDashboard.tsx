@@ -8,10 +8,10 @@ import { WorkspaceStats } from "./WorkspaceStats";
 import { ActivitySection } from "./ActivitySection";
 
 interface AdminDashboardProps {
-  projectId: string;
+  projectId?: string;
 }
 
-export function AdminDashboard({ projectId }: AdminDashboardProps) {
+export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
   const navigate = useNavigate();
   const projects = useStore(state => state.projects);
   const tasks = useStore(state => state.tasks);
@@ -19,7 +19,8 @@ export function AdminDashboard({ projectId }: AdminDashboardProps) {
   const createTask = useStore(state => state.createTask);
 
   const project = projects.find(p => p.id === projectId) || projects[0];
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
+  const effectiveProjectId = projectId || project?.id?.toString() || "1";
+  const projectTasks = tasks.filter(t => t.projectId === effectiveProjectId || t.projectId === Number(effectiveProjectId));
   const projectMembers = Array.isArray(project?.members) && project.members.length > 0
     ? members.filter(m => project.members.includes(m.id))
     : members;
@@ -43,7 +44,7 @@ export function AdminDashboard({ projectId }: AdminDashboardProps) {
     }
     setIsDispatching(true);
     setTimeout(() => {
-      createTask(projectId, taskTitle.trim(), selectedAssignee, selectedPriority, selectedDueDate);
+      createTask(effectiveProjectId, taskTitle.trim(), selectedAssignee, selectedPriority, selectedDueDate);
       const assigneeName = members.find(m => m.id === selectedAssignee)?.name || "Team Member";
       toast.success(`Task dispatched to ${assigneeName}!`);
       setTaskTitle("");
@@ -68,13 +69,13 @@ export function AdminDashboard({ projectId }: AdminDashboardProps) {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button 
-            onClick={() => navigate(`/projects/${projectId}/board`)}
+            onClick={() => navigate(`/projects/${effectiveProjectId}/board`)}
             className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
           >
             Open Board
           </button>
           <button 
-            onClick={() => navigate(`/projects/${projectId}/members`)}
+            onClick={() => navigate(`/projects/${effectiveProjectId}/members`)}
             className="px-4 py-2 border border-gray-200 dark:border-[#2C2C2C] text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-[#191919]/50 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-2"
           >
             Manage Team
@@ -196,14 +197,9 @@ export function AdminDashboard({ projectId }: AdminDashboardProps) {
         </form>
       </div>
 
-      {/* Reused WorkspaceStats Component */}
-      <div className="mb-12">
-        <WorkspaceStats projectId={projectId} />
-      </div>
-
-      {/* Reused ActivitySection Component */}
-      <div>
-        <ActivitySection projectId={projectId} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <WorkspaceStats projectId={effectiveProjectId} />
+        <ActivitySection projectId={effectiveProjectId} />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, Tag, User, AlertCircle, MessageSquare, Send, TerminalSquare, Check, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { CustomSelect } from "../ui/CustomSelect";
+import { useProjectMembers } from "../../hooks/useProjects";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -39,18 +40,23 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
 
   const activeProjectId = projectId || task?.projectId || projects[0]?.id;
   const project = projects.find(p => String(p.id) === String(activeProjectId));
+  const { data: explicitProjectMembers = [] } = useProjectMembers(activeProjectId ? Number(activeProjectId) : undefined);
   
-  // Deduplicate project members by id
+  // Deduplicate project members by id and filter out Viewers
   const projectMembers = React.useMemo(() => {
     const rawList = members.filter(m => !project || !project.members || project.members.includes(String(m.id)) || project.members.includes(Number(m.id)) || project.members.length === 0);
     const seen = new Set();
     return rawList.filter(m => {
       const stringId = String(m.id);
       if (seen.has(stringId)) return false;
+      const explicitRole = explicitProjectMembers.find(pm => String(pm.id) === stringId || String(pm.userId) === stringId || (pm.email && m.email && pm.email.toLowerCase() === m.email.toLowerCase()))?.role;
+      if (explicitRole?.toUpperCase() === 'VIEWER' || (!explicitRole && m.role?.toUpperCase() === 'VIEWER')) {
+        return false;
+      }
       seen.add(stringId);
       return true;
     });
-  }, [members, project]);
+  }, [members, project, explicitProjectMembers]);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -110,7 +116,7 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
     setIsSubmitting(true);
     try {
       const fullDesc = description + (estimatedTime || label ? `\n\n[Meta] Est: ${estimatedTime} | Tag: ${label}` : "");
-      await createTask(activeProjectId!, title.trim(), assigneeId || undefined, priority, dueDate || undefined, fullDesc);
+      await createTask(activeProjectId!, title.trim(), assigneeId || undefined, priority, dueDate || undefined, fullDesc, status);
       toast.success("Task created successfully!");
       onClose();
     } catch (err) {
