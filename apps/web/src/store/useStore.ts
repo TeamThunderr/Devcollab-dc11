@@ -230,32 +230,8 @@ export const useStore = create<WorkspaceState>((set, get) => ({
       }));
       return formattedTask;
     } catch (err) {
-      console.error("Failed to create task in backend, using local state", err);
-      const newTask: Task = {
-        id: Math.random().toString(36).substr(2, 9),
-        projectId,
-        title,
-        description,
-        status: status ? toFrontendStatus(status) : 'To Do',
-        assigneeId,
-        priority,
-        dueDate,
-        createdAt: new Date().toISOString(),
-      };
-      const assignee = get().members.find(m => String(m.id) === String(assigneeId));
-      const newActivity: ActivityItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        projectId,
-        userId: assigneeId || 'm1',
-        action: `created task "${title}"${assignee ? ` assigned to ${assignee.name}` : ''}`,
-        timestamp: new Date().toISOString()
-      };
-      set((state) => ({
-        tasks: [newTask, ...state.tasks],
-        projects: state.projects.map(p => String(p.id) === String(projectId) ? { ...p, tasksCount: (p.tasksCount || 0) + 1 } : p),
-        activities: [newActivity, ...state.activities]
-      }));
-      return newTask;
+      console.error("Failed to create task in backend:", err);
+      throw err;
     }
   },
 

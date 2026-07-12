@@ -42,9 +42,14 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
   const project = projects.find(p => String(p.id) === String(activeProjectId));
   const { data: explicitProjectMembers = [] } = useProjectMembers(activeProjectId ? Number(activeProjectId) : undefined);
   
-  // Deduplicate project members by id and filter out Viewers
+  // Deduplicate and strictly filter project members by explicit project membership (and filter out Viewers)
   const projectMembers = React.useMemo(() => {
-    const rawList = members.filter(m => !project || !project.members || project.members.includes(String(m.id)) || project.members.includes(Number(m.id)) || project.members.length === 0);
+    const rawList = members.filter(m => {
+      const stringId = String(m.id);
+      const isExplicit = explicitProjectMembers.some(pm => String(pm.id) === stringId || String(pm.userId) === stringId || (pm.email && m.email && pm.email.toLowerCase() === m.email.toLowerCase()));
+      const isProjectMember = project?.members && project.members.length > 0 && (project.members.includes(stringId) || project.members.includes(Number(stringId)));
+      return isExplicit || isProjectMember || (explicitProjectMembers.length === 0 && (!project?.members || project.members.length === 0));
+    });
     const seen = new Set();
     return rawList.filter(m => {
       const stringId = String(m.id);
@@ -119,8 +124,9 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
       await createTask(activeProjectId!, title.trim(), assigneeId || undefined, priority, dueDate || undefined, fullDesc, status);
       toast.success("Task created successfully!");
       onClose();
-    } catch (err) {
-      toast.error("Failed to create task");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to create task";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -148,8 +154,9 @@ export function TaskModal({ isOpen, onClose, mode, projectId, initialStatus = "T
       }
       toast.success("Task updated successfully!");
       onClose();
-    } catch (err) {
-      toast.error("Failed to update task");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to update task";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
