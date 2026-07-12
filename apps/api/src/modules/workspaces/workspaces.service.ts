@@ -430,7 +430,7 @@ export const workspacesService = {
       expiresAt
     })
     const rejectUrl = `${env.FRONTEND_URL}/reject-invite?slug=${workspace.slug}&email=${input.email}`
-    const inviteUrl = `${env.FRONTEND_URL}/invite/${workspace.slug}?code=${invitationCode}`
+    const inviteUrl = `${env.FRONTEND_URL}/invite/${workspace.slug}?code=${invitationCode}&email=${encodeURIComponent(input.email)}`
 
     await emailService.sendWorkspaceInvite(
       input.email, 
@@ -520,6 +520,10 @@ export const workspacesService = {
 
     if (new Date() > new Date(invitation.expiresAt)) {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
+    }
+
+    if (invitation.email.toLowerCase() !== currentUser.email.toLowerCase()) {
+      throw new AppError(403, 'FORBIDDEN', 'This invitation was sent to a different email address. Please log in with the correct account.')
     }
 
     // 2. Mark this specific invitation as accepted (and any others for this exact email to clean up duplicates)
