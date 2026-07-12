@@ -89,7 +89,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const { activeWorkspaceId, members: storeMembers } = useStore();
   
   const { data: workspaces } = useWorkspaces();
-  const { data: wsMembers } = useWorkspaceMembers(activeWorkspaceId ? Number(activeWorkspaceId) : undefined);
+  const { data: wsMembers, isLoading: isWsMembersLoading } = useWorkspaceMembers(activeWorkspaceId ? Number(activeWorkspaceId) : undefined);
 
   const [manualRole, setManualRole] = useState<Role | null>(() => {
     const saved = localStorage.getItem("devcollab_role");
@@ -117,7 +117,8 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
     (m.email && currentUser?.email && m.email.toLowerCase() === currentUser.email.toLowerCase())
   );
 
-  let workspaceRole: Role = "MEMBER";
+  // Default to null while loading to avoid premature MEMBER assignment for Viewers
+  let workspaceRole: Role = isWsMembersLoading && !isWorkspaceOwner && !currentWsMember ? "VIEWER" : "MEMBER";
   if (isWorkspaceOwner) {
     workspaceRole = "OWNER";
   } else if (currentWsMember?.role) {
@@ -127,22 +128,24 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
     } else if (rawRole === "TEAM_LEAD") {
       workspaceRole = "ADMIN";
     }
-  } else if (manualRole) {
+  } else if (!isWsMembersLoading && manualRole) {
+    // Only use manualRole as last resort when real data has loaded and found nothing
     workspaceRole = manualRole;
   }
 
   // Check if inside a project route
   const projectMatch = location.pathname.match(/\/projects\/(\d+)/);
   const currentProjectId = projectMatch ? Number(projectMatch[1]) : null;
-  const { data: projectMembersList = [] } = useProjectMembers(currentProjectId || undefined);
+  const { data: projectMembersList = [], isLoading: isProjectMembersLoading } = useProjectMembers(currentProjectId || undefined);
 
   let role: Role = workspaceRole;
   if (currentProjectId && currentProjectId > 0) {
     if (workspaceRole === "OWNER" || workspaceRole === "ADMIN") {
       // Workspace Admin/Owner has automatic full Admin UX in all projects
       role = workspaceRole;
-    } else {
-      // For workspace members or viewers, check their explicit project membership
+    } else if (!isProjectMembersLoading) {
+      // Only resolve project-level role AFTER the member list has loaded
+      // to prevent the race condition where empty [] defaults Viewer → Member
       const currentProjMember = projectMembersList.find((pm: any) =>
         (pm.id && String(pm.id) === currentUserId) ||
         (pm.userId && String(pm.userId) === currentUserId) ||
@@ -157,8 +160,12 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         } else if (rawProjRole === "VIEWER") {
           role = "VIEWER";
         }
+      } else {
+        // User is not explicitly in projectMembers — fall back to their workspace role
+        role = workspaceRole;
       }
     }
+    // While isProjectMembersLoading === true, keep role === workspaceRole (stable until data arrives)
   }
 
   const permissions = buildPermissionsForRole(role, currentUserId);
