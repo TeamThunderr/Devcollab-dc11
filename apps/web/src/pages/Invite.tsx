@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useStore } from '../store/useStore';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 
 export function Invite() {
   const { slug } = useParams<{ slug: string }>();
@@ -13,14 +14,24 @@ export function Invite() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { setActiveWorkspace } = useStore();
+  const { currentUser, logout } = useAuth();
+  
+  const intendedEmail = searchParams.get('email');
   const [code, setCode] = useState(searchParams.get('code') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isEmailMismatch = intendedEmail && currentUser && currentUser.email.toLowerCase() !== intendedEmail.toLowerCase();
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code) {
       setError('Please enter the invitation code.');
+      return;
+    }
+    
+    if (isEmailMismatch) {
+      setError(`This invitation is for ${intendedEmail}. Please log out and sign in with the correct account.`);
       return;
     }
 
@@ -53,6 +64,23 @@ export function Invite() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Join Workspace</h2>
           <p className="text-gray-500">Enter the invitation code from your email to join the workspace.</p>
         </div>
+
+        {isEmailMismatch && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800 dark:text-amber-400">
+              <p className="font-semibold mb-1">Account Mismatch</p>
+              <p>This invitation was sent to <strong>{intendedEmail}</strong>, but you are logged in as <strong>{currentUser?.email}</strong>.</p>
+              <button 
+                type="button"
+                onClick={() => logout()}
+                className="mt-2 font-medium underline hover:text-amber-900 dark:hover:text-amber-300"
+              >
+                Log out to switch accounts
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleJoin} className="space-y-6">
           <div>
