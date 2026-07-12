@@ -3,7 +3,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { RBACProvider } from "./context/RBACContext";
 import { AuthProvider } from "./context/AuthContext";
 import { AppRoutes } from "./routes/AppRoutes";
-import { DevToolsPanel } from "./components/dev/DevToolsPanel";
+
 import { ProjectTransitionModal } from "./components/common/ProjectTransitionModal";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "./components/ui/Tooltip";
@@ -20,7 +20,7 @@ export default function App() {
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <ProjectTransitionModal />
                 <AppRoutes />
-                <DevToolsPanel />
+
               </BrowserRouter>
             </RBACProvider>
           </AuthProvider>

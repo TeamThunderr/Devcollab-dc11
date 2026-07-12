@@ -64,7 +64,7 @@ export function Projects() {
     if (filter === 'All') return true;
     if (filter === 'Active') return p.status === 'active';
     if (filter === 'Archived') return p.status === 'archived';
-    if (filter === 'P0' || filter === 'P1' || filter === 'P2') return p.priority === filter;
+    if (filter === 'P0' || filter === 'P1' || filter === 'P3') return p.priority === filter;
     return true;
   });
 
@@ -154,7 +154,7 @@ export function Projects() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {['All', 'Active', 'Archived', 'P0', 'P1', 'P2'].map(f => (
+            {['All', 'Active', 'Archived', 'P0', 'P1', 'P3'].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}

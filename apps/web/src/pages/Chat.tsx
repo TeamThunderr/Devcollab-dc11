@@ -14,24 +14,7 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const INITIAL_MESSAGES: ChatMessage[] = [
-  {
-    id: "msg-1",
-    senderName: "Sanjay Balan",
-    senderRole: "Admin",
-    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=SANJAY",
-    content: "Hey everyone! Welcome to our project workspace 🎉 Feel free to use #general for team alignment and quick updates.",
-    timestamp: "10:15 AM",
-  },
-  {
-    id: "msg-2",
-    senderName: "Alice Smith",
-    senderRole: "Member",
-    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alice",
-    content: "Thanks Sanjay! Excited to collaborate on our tasks and boards.",
-    timestamp: "10:18 AM",
-  },
-];
+const INITIAL_MESSAGES: ChatMessage[] = [];
 
 export function Chat() {
   const { role } = useRole();
@@ -41,7 +24,7 @@ export function Chat() {
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
-      const saved = localStorage.getItem("chat_channel_general_messages");
+      const saved = localStorage.getItem("chat_channel_general_messages_v2");
       if (saved) return JSON.parse(saved);
     } catch (e) {
       // ignore
@@ -54,7 +37,7 @@ export function Chat() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("chat_channel_general_messages", JSON.stringify(messages));
+      localStorage.setItem("chat_channel_general_messages_v2", JSON.stringify(messages));
     } catch (e) {
       // ignore
     }
@@ -156,7 +139,7 @@ export function Chat() {
         </div>
 
         {/* Input */}
-        <div className="p-4 bg-white dark:bg-[#111111] border-t border-gray-100 dark:border-gray-800/60 flex-shrink-0">
+        <div className="p-4 pr-24 bg-white dark:bg-[#111111] border-t border-gray-100 dark:border-gray-800/60 flex-shrink-0">
           <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden focus-within:border-blue-500/50 dark:focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all bg-gray-50/50 dark:bg-gray-900/30">
             <textarea 
               disabled={!perms.canCollaborate}
