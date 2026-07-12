@@ -139,7 +139,7 @@ export const workspacesService = {
   async getWorkspaceMembers(workspaceId: number, userId: number) {
     await this.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
 
-    const members = await db
+    const activeMembers = await db
       .select({
         id: users.id,
         name: users.name,
@@ -147,13 +147,31 @@ export const workspacesService = {
         avatarUrl: users.avatar,
         role: workspaceMembers.role,
         joinedAt: workspaceMembers.createdAt,
+        status: sql<string>`'Active'`,
       })
       .from(workspaceMembers)
       .innerJoin(users, eq(workspaceMembers.userId, users.id))
       .where(eq(workspaceMembers.workspaceId, workspaceId))
-      .orderBy(users.name)
 
-    return members
+    const pendingInvitations = await db
+      .select({
+        id: workspaceInvitations.id,
+        name: sql<string>`'Pending User'`,
+        email: workspaceInvitations.email,
+        avatarUrl: sql<string>`null`,
+        role: workspaceInvitations.role,
+        joinedAt: workspaceInvitations.createdAt,
+        status: sql<string>`'Pending'`,
+      })
+      .from(workspaceInvitations)
+      .where(
+        and(
+          eq(workspaceInvitations.workspaceId, workspaceId),
+          eq(workspaceInvitations.status, 'PENDING')
+        )
+      )
+
+    return [...activeMembers, ...pendingInvitations].sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async updateWorkspace(workspaceId: number, userId: number, data: UpdateWorkspaceInput) {
@@ -443,6 +461,8 @@ export const workspacesService = {
       .update(workspaceInvitations)
       .set({ status: 'ACCEPTED' })
       .where(eq(workspaceInvitations.id, invitation.id))
+
+    emitToWorkspace(workspace.id, 'member:joined', { userId, role: invitation.role })
 
     return { workspaceId: workspace.id, joined: true }
   }

@@ -41,6 +41,9 @@ export interface ServerToClientEvents {
   'project:member_added': (payload: { projectId: number; userId: number; role: string }) => void
   'project:member_removed': (payload: { projectId: number; userId: number }) => void
 
+  // Workspace events
+  'member:joined': (payload: { userId: number; role: string }) => void
+
   // Workspace member events
   'member:added': (payload: { userId: number; role?: string }) => void
   'member:updated': (payload: { userId: number; role?: string }) => void
