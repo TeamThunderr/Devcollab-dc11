@@ -22,8 +22,24 @@ export function Invite() {
     setError('');
     
     try {
-      await api.post(`/api/workspaces/join/${slug}`, { code });
-      navigate('/dashboard');
+      await api.post(`/api/workspaces/join`, { code });
+      
+      // Try to fetch projects and redirect to the first project
+      try {
+        const { data: workspaces } = await api.get<any[]>('/api/workspaces');
+        const activeWorkspace = workspaces.find((w: any) => w.slug === slug);
+        if (activeWorkspace) {
+          const { data: projects } = await api.get<any[]>(`/api/workspaces/${activeWorkspace.id}/projects`);
+          if (projects && projects.length > 0) {
+            navigate(`/projects/${projects[0].id}`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch projects after joining:", err);
+      }
+      
+      navigate('/projects');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to join workspace. Invalid or expired code.');
     } finally {

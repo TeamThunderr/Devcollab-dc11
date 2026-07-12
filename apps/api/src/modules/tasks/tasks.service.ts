@@ -88,7 +88,22 @@ export const tasksService = {
     const task = await db.query.tasks.findFirst({ where: eq(tasks.id, taskId) })
     if (!task) throw new AppError(404, 'NOT_FOUND', 'Task not found')
 
-    const { project } = await projectsService.checkProjectPermission(task.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
+    let project = null
+    try {
+      const result = await projectsService.checkProjectPermission(task.projectId, userId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
+      project = result.project
+    } catch (err: any) {
+      if (err.statusCode === 403 && (task.assigneeId === userId || task.createdBy === userId)) {
+        // Fallback: check if they are at least a workspace member
+        const workspaceId = await this.getProjectWorkspaceId(task.projectId)
+        await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+        
+        project = await db.query.projects.findFirst({ where: eq(projects.id, task.projectId) })
+        if (!project) throw new AppError(404, 'NOT_FOUND', 'Project not found')
+      } else {
+        throw err
+      }
+    }
     const workspaceId = project.workspaceId
 
     const updateData: any = { ...data }

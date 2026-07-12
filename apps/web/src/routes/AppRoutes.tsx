@@ -99,7 +99,7 @@ export function AppRoutes() {
 
       <Route path="/billing" element={
         <AuthGuard>
-          <WorkspaceRouteGuard adminOnly>
+          <WorkspaceRouteGuard>
             <Billing />
           </WorkspaceRouteGuard>
         </AuthGuard>

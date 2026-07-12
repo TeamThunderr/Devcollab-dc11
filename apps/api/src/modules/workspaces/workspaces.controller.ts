@@ -153,14 +153,13 @@ export const inviteMemberHandler = async (
 }
 
 export const joinWorkspaceHandler = async (
-  request: FastifyRequest<{ Params: { slug: string }, Body: { code: string } }>,
+  request: FastifyRequest<{ Body: { code: string } }>,
   reply: FastifyReply
 ) => {
   const userId = request.user!.id
-  const slug = request.params.slug
   const code = request.body.code
   
-  const result = await workspacesService.joinWorkspace(slug, userId, code)
+  const result = await workspacesService.joinWorkspaceByCode(userId, code)
   reply.code(200)
   return result
 }

@@ -27,10 +27,15 @@ export const activityService = {
   },
 
   async getWorkspaceActivity(workspaceId: number, userId: number) {
-    await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    const member = await workspacesService.checkPermission(workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+
+    const isAdmin = member.role === 'OWNER' || member.role === 'ADMIN'
 
     return await db.query.activityFeed.findMany({
-      where: eq(activityFeed.workspaceId, workspaceId),
+      where: and(
+        eq(activityFeed.workspaceId, workspaceId),
+        isAdmin ? undefined : eq(activityFeed.userId, userId)
+      ),
       orderBy: [desc(activityFeed.createdAt)],
       limit: 100,
     })
@@ -40,10 +45,14 @@ export const activityService = {
     const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId) })
     if (!project) throw new AppError(404, 'NOT_FOUND', 'Project not found')
 
-    await workspacesService.checkPermission(project.workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    const member = await workspacesService.checkPermission(project.workspaceId, userId, ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
+    const isAdmin = member.role === 'OWNER' || member.role === 'ADMIN'
 
     return await db.query.activityFeed.findMany({
-      where: eq(activityFeed.projectId, projectId),
+      where: and(
+        eq(activityFeed.projectId, projectId),
+        isAdmin ? undefined : eq(activityFeed.userId, userId)
+      ),
       orderBy: [desc(activityFeed.createdAt)],
       limit: 100,
     })

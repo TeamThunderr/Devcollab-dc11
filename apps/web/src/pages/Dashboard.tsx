@@ -10,6 +10,7 @@ import { useWorkspaces, useWorkspaceStats } from "../hooks/useWorkspaces";
 import { useStore } from "../store/useStore";
 
 import { MemberDashboard } from "../components/dashboard/MemberDashboard";
+import { ViewerWorkspaceDashboard } from "../components/dashboard/ViewerWorkspaceDashboard";
 import { useRole } from "../context/RBACContext";
 
 export function Dashboard() {
@@ -24,6 +25,14 @@ export function Dashboard() {
     return (
       <DashboardLayout title="Overview">
         <MemberDashboard />
+      </DashboardLayout>
+    );
+  }
+
+  if (role === 'VIEWER') {
+    return (
+      <DashboardLayout title="Overview">
+        <ViewerWorkspaceDashboard />
       </DashboardLayout>
     );
   }

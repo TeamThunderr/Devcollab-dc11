@@ -87,19 +87,21 @@ export function Sidebar() {
             <NavItem icon={<CheckCircle className="w-5 h-5" />} label="My Tasks" to="/tasks" isCollapsed={isCollapsed} />
           )}
           <NavItem icon={<Folder className="w-5 h-5" />} label="Projects" to="/projects" isCollapsed={isCollapsed} />
-          <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" to="/activity" isCollapsed={isCollapsed} />
+          {isAtLeastMember && (
+            <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" to="/activity" isCollapsed={isCollapsed} />
+          )}
         </nav>
 
         <div className="my-4 mx-2 border-t border-gray-200 dark:border-[#2C2C2C] w-[calc(100%-16px)]"></div>
 
-        {/* Admin */}
+        {/* Admin & Billing */}
         <nav className="space-y-0.5">
           <NavItem icon={<Users className="w-5 h-5" />} label="Members" to="/members" isCollapsed={isCollapsed} />
+          {isAtLeastMember && (
+            <NavItem icon={<CreditCard className="w-5 h-5" />} label="Billing" to="/billing" isCollapsed={isCollapsed} />
+          )}
           {isAdmin && (
-            <>
-              <NavItem icon={<CreditCard className="w-5 h-5" />} label="Billing" to="/billing" isCollapsed={isCollapsed} />
-              <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" to="/settings" isCollapsed={isCollapsed} />
-            </>
+            <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" to="/settings" isCollapsed={isCollapsed} />
           )}
         </nav>
 

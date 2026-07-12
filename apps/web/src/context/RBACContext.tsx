@@ -82,30 +82,22 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const { currentUser } = useAuth();
   const members = useStore(state => state.members);
   
-  const [manualRole, setManualRole] = useState<Role | null>(() => {
-    const saved = localStorage.getItem("devcollab_role");
-    return saved ? (saved as Role) : null;
-  });
-
-  const setRole = (newRole: Role) => {
-    setManualRole(newRole);
-    localStorage.setItem("devcollab_role", newRole);
-  };
-
-  const currentUserId = currentUser?.id?.toString() || "";
-  
   // Find current user's role in the active workspace
+  const currentUserId = currentUser?.id?.toString() || "";
   const currentMember = members.find(m => 
     (m.id && String(m.id) === currentUserId) || 
     (m.email && currentUser?.email && m.email.toLowerCase() === currentUser.email.toLowerCase())
   );
   
   let role: Role = "MEMBER";
-  if (manualRole) {
-    role = manualRole;
-  } else if (currentMember?.role) {
+  if (currentMember?.role) {
     role = currentMember.role.toUpperCase() as Role;
   }
+
+  const setRole = (newRole: Role) => {
+    // No-op or we can throw an error, since roles should only be changed via backend now
+    console.warn("Role switching is disabled in production. Role is derived from the backend.");
+  };
 
   const permissions = buildPermissionsForRole(role, currentUserId);
 

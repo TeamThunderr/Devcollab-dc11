@@ -200,10 +200,9 @@ export const workspacesRoutes: FastifyPluginAsyncZod = async (app) => {
   )
 
   app.post(
-    '/join/:slug',
+    '/join',
     {
       schema: {
-        params: joinWorkspaceSchema,
         body: joinWorkspaceBodySchema,
         response: {
           200: z.object({ workspaceId: z.number(), joined: z.boolean() }),

@@ -51,8 +51,8 @@ export function MyTasks() {
   const numericUserId = parseInt(currentUserId, 10);
   const myTasks = allTasks.filter(t => t.assigneeId === numericUserId);
   
-  const activeTasks = myTasks.filter(t => t.status !== "DONE");
-  const completedTasks = myTasks.filter(t => t.status === "DONE");
+  const activeTasks = myTasks.filter(t => t.status !== "Done");
+  const completedTasks = myTasks.filter(t => t.status === "Done");
 
   let displayedTasks = activeTab === "ACTIVE" ? activeTasks : completedTasks;
 

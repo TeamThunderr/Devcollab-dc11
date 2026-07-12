@@ -8,6 +8,7 @@ import { useStore } from "../store/useStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeContext } from "../context/ThemeContext";
 import { CreateWorkspaceModal } from "../components/common/CreateWorkspaceModal";
+import { JoinWorkspaceModal } from "../components/common/JoinWorkspaceModal";
 
 export function WorkspaceSelection() {
   const { currentUser } = useAuth();
@@ -20,6 +21,7 @@ export function WorkspaceSelection() {
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
   const filteredWorkspaces = workspaces?.filter(w => 
     w.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
@@ -44,8 +46,14 @@ export function WorkspaceSelection() {
   };
 
   const handleJoinWorkspace = () => {
-    // In a complete implementation, this would open a JoinWorkspaceModal.
-    alert("Join workspace modal would open here");
+    setIsJoinOpen(true);
+  };
+
+  const handleJoinSuccess = (workspaceId: number) => {
+    setActiveWorkspace(workspaceId);
+    queryClient.invalidateQueries();
+    window.dispatchEvent(new Event("workspace:changed"));
+    navigate("/dashboard");
   };
 
   if (isLoading) {
@@ -105,6 +113,7 @@ export function WorkspaceSelection() {
         </motion.div>
         
         <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+        <JoinWorkspaceModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} onSuccess={handleJoinSuccess} />
       </div>
     );
   }
@@ -233,6 +242,7 @@ export function WorkspaceSelection() {
       </div>
 
       <CreateWorkspaceModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <JoinWorkspaceModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} onSuccess={handleJoinSuccess} />
     </div>
   );
 }

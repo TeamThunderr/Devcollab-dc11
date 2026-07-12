@@ -357,53 +357,19 @@ export const workspacesService = {
     return { success: true }
   },
 
-  async joinWorkspace(slug: string, userId: number, code: string) {
-    const [workspace] = await db
-      .select()
-      .from(workspaces)
-      .where(eq(workspaces.slug, slug))
-      .limit(1)
-
-    if (!workspace) {
-      throw new AppError(404, 'NOT_FOUND', 'Workspace not found')
-    }
-
-    const [existing] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.workspaceId, workspace.id),
-          eq(workspaceMembers.userId, userId)
-        )
-      )
-      .limit(1)
-
-    if (existing) {
-      return { workspaceId: workspace.id, joined: true }
-    }
-
+  async joinWorkspaceByCode(userId: number, code: string) {
     // Validate the invitation code
     const [invitation] = await db
       .select()
       .from(workspaceInvitations)
-      .where(
-        and(
-          eq(workspaceInvitations.workspaceId, workspace.id),
-          eq(workspaceInvitations.code, code)
-        )
-      )
+      .where(eq(workspaceInvitations.code, code))
       .limit(1)
 
     if (!invitation) {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
     }
 
-    if (invitation.status === 'REJECTED') {
-      throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
-    }
-
-    if (invitation.status === 'ACCEPTED') {
+    if (invitation.status === 'REJECTED' || invitation.status === 'ACCEPTED') {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
     }
 
@@ -411,11 +377,28 @@ export const workspacesService = {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
     }
 
+    const workspaceId = invitation.workspaceId
+
+    const [existing] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.userId, userId)
+        )
+      )
+      .limit(1)
+
+    if (existing) {
+      return { workspaceId, joined: true }
+    }
+
     // Add as member with the role from the invitation
     await db
       .insert(workspaceMembers)
       .values({
-        workspaceId: workspace.id,
+        workspaceId,
         userId,
         role: invitation.role,
       })
@@ -426,6 +409,6 @@ export const workspacesService = {
       .set({ status: 'ACCEPTED' })
       .where(eq(workspaceInvitations.id, invitation.id))
 
-    return { workspaceId: workspace.id, joined: true }
+    return { workspaceId, joined: true }
   }
 }

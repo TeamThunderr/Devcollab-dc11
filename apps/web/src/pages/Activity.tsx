@@ -376,9 +376,29 @@ export function Activity() {
             </p>
           </div>
 
-          {/* Quick Stats Pill */}
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2C2C2C] text-right">
+          {/* Quick Stats Pill & Project Filter */}
+          <div className="flex flex-col items-end gap-3">
+            {!projectId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-between min-w-[140px] gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#141414] text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#191919] transition-colors shadow-sm">
+                    <div className="flex items-center gap-1.5">
+                      <Folder className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>{projectFilter === 'All Projects' ? 'All Projects' : projects.find(p => p.id === projectFilter)?.name || 'Project'}</span>
+                    </div>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setProjectFilter('All Projects')}>All Projects</DropdownMenuItem>
+                  {projects.map(p => (
+                    <DropdownMenuItem key={p.id} onClick={() => setProjectFilter(p.id)}>{p.name}</DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
+            <div className="px-4 py-2 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2C2C2C] text-right min-w-[140px]">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Recorded</div>
               <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">{activities.length}</div>
             </div>
@@ -531,6 +551,8 @@ export function Activity() {
               ))}
             </div>
 
+
+
             {/* Date Filter Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -560,25 +582,6 @@ export function Activity() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Project Filter Dropdown */}
-            {!projectId && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] transition-colors shadow-sm shrink-0">
-                    <Folder className="w-3.5 h-3.5 text-gray-400" />
-                    <span>{projectFilter === 'All Projects' ? 'All Projects' : projects.find(p => p.id === projectFilter)?.name || 'Project'}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setProjectFilter('All Projects')}>All Projects</DropdownMenuItem>
-                  {projects.map(p => (
-                    <DropdownMenuItem key={p.id} onClick={() => setProjectFilter(p.id)}>{p.name}</DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
         </div>
 

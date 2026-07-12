@@ -134,8 +134,8 @@ export function useInviteMember() {
 export function useJoinWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (slug: string) => {
-      const { data } = await api.post<{ workspaceId: number; joined: boolean }>(`/api/workspaces/join/${slug}`);
+    mutationFn: async (code: string) => {
+      const { data } = await api.post<{ workspaceId: number; joined: boolean }>(`/api/workspaces/join`, { code });
       return data;
     },
     onSuccess: () => {
