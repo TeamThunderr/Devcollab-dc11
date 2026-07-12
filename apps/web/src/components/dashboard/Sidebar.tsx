@@ -19,7 +19,7 @@ export function Sidebar() {
   const activeWorkspaceObj = workspaces?.find(w => Number(w.id) === Number(activeWorkspaceId)) || workspaces?.[0];
   const { data: projects } = useProjects(activeWorkspaceObj?.id);
 
-  const isAdmin = role === "ADMIN";
+  const isAdmin = role === "ADMIN" || role === "OWNER";
   const isAtLeastMember = role !== "VIEWER";
   
   const activeWorkspace = activeWorkspaceObj?.name || "Workspace";

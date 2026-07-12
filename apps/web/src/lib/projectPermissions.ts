@@ -16,6 +16,7 @@ export interface ProjectPermissions {
 
 export function getProjectPermissions(role: Role): ProjectPermissions {
   switch (role) {
+    case "OWNER":
     case "ADMIN":
       return {
         canAdminister: true,
