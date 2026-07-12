@@ -155,7 +155,7 @@ export const workspacesService = {
 
     const pendingInvitations = await db
       .select({
-        id: workspaceInvitations.id,
+        id: sql<string>`'pending_' || ${workspaceInvitations.id}::text`,
         name: sql<string>`'Pending User'`,
         email: workspaceInvitations.email,
         avatarUrl: sql<string>`null`,
@@ -284,6 +284,28 @@ export const workspacesService = {
     return member
   },
 
+  async updateInvitationRole(workspaceId: number, invitationId: number, updaterId: number, data: UpdateMemberRoleInput) {
+    await this.checkPermission(workspaceId, updaterId, ['OWNER', 'ADMIN'])
+
+    const [invitation] = await db
+      .update(workspaceInvitations)
+      .set({ role: data.role.toUpperCase() as any })
+      .where(
+        and(
+          eq(workspaceInvitations.id, invitationId),
+          eq(workspaceInvitations.workspaceId, workspaceId)
+        )
+      )
+      .returning()
+
+    if (!invitation) {
+      throw new AppError(404, 'NOT_FOUND', 'Invitation not found')
+    }
+
+    emitToWorkspace(workspaceId, 'member:updated', { userId: `pending_${invitationId}` as any, role: invitation.role });
+    return { workspaceId, userId: `pending_${invitationId}` as any, role: invitation.role, createdAt: invitation.createdAt }
+  },
+
   async removeMember(workspaceId: number, targetUserId: number, requesterId: number) {
     if (targetUserId !== requesterId) {
       // Must be ADMIN or OWNER to remove others
@@ -304,6 +326,29 @@ export const workspacesService = {
 
     if (!deletedMember) throw new AppError(404, 'NOT_FOUND', 'Member not found')
     emitToWorkspace(workspaceId, 'member:removed', { userId: targetUserId });
+    return { success: true }
+  },
+
+  async revokeInvitation(workspaceId: number, invitationId: number, requesterId: number) {
+    await this.checkPermission(workspaceId, requesterId, ['OWNER', 'ADMIN'])
+
+    const [deletedInvitation] = await db
+      .delete(workspaceInvitations)
+      .where(
+        and(
+          eq(workspaceInvitations.id, invitationId),
+          eq(workspaceInvitations.workspaceId, workspaceId)
+        )
+      )
+      .returning()
+
+    if (!deletedInvitation) {
+      throw new AppError(404, 'NOT_FOUND', 'Invitation not found')
+    }
+    
+    // Emit event to update UI
+    emitToWorkspace(workspaceId, 'member:removed', { userId: `pending_${invitationId}` as any });
+    
     return { success: true }
   },
 
@@ -332,6 +377,45 @@ export const workspacesService = {
 
     if (!workspace) {
       throw new AppError(404, 'NOT_FOUND', 'Workspace not found')
+    }
+
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, input.email))
+      .limit(1)
+
+    if (existingUser) {
+      const [existingMember] = await db
+        .select()
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, workspace.id),
+            eq(workspaceMembers.userId, existingUser.id)
+          )
+        )
+        .limit(1)
+
+      if (existingMember) {
+        throw new AppError(400, 'BAD_REQUEST', 'User is already a member of this workspace')
+      }
+    }
+
+    const [existingInvitation] = await db
+      .select()
+      .from(workspaceInvitations)
+      .where(
+        and(
+          eq(workspaceInvitations.workspaceId, workspace.id),
+          eq(workspaceInvitations.email, input.email),
+          eq(workspaceInvitations.status, 'PENDING')
+        )
+      )
+      .limit(1)
+
+    if (existingInvitation) {
+      throw new AppError(400, 'BAD_REQUEST', 'User already has a pending invitation')
     }
 
     const invitationCode = 'DEV-' + crypto.randomBytes(4).toString('hex').toUpperCase()
@@ -404,22 +488,17 @@ export const workspacesService = {
       throw new AppError(404, 'NOT_FOUND', 'Workspace not found')
     }
 
-    const [existing] = await db
+    const [currentUser] = await db
       .select()
-      .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.workspaceId, workspace.id),
-          eq(workspaceMembers.userId, userId)
-        )
-      )
+      .from(users)
+      .where(eq(users.id, userId))
       .limit(1)
 
-    if (existing) {
-      return { workspaceId: workspace.id, joined: true }
+    if (!currentUser) {
+      throw new AppError(404, 'NOT_FOUND', 'User not found')
     }
 
-    // Validate the invitation code
+    // 1. Validate the invitation code FIRST
     const [invitation] = await db
       .select()
       .from(workspaceInvitations)
@@ -435,11 +514,7 @@ export const workspacesService = {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
     }
 
-    if (invitation.status === 'REJECTED') {
-      throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
-    }
-
-    if (invitation.status === 'ACCEPTED') {
+    if (invitation.status === 'REJECTED' || invitation.status === 'ACCEPTED') {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
     }
 
@@ -447,7 +522,46 @@ export const workspacesService = {
       throw new AppError(400, 'BAD_REQUEST', 'This invitation has expired or is no longer valid.')
     }
 
-    // Add as member with the role from the invitation
+    // 2. Mark this specific invitation as accepted (and any others for this exact email to clean up duplicates)
+    await db
+      .update(workspaceInvitations)
+      .set({ status: 'ACCEPTED' })
+      .where(
+        and(
+          eq(workspaceInvitations.workspaceId, workspace.id),
+          eq(workspaceInvitations.email, invitation.email)
+        )
+      )
+
+    // 3. Check if user is already a member
+    const [existing] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspace.id),
+          eq(workspaceMembers.userId, userId)
+        )
+      )
+      .limit(1)
+
+    if (existing) {
+      // If the current user has other invitations under their own email, clean those up too
+      if (currentUser.email !== invitation.email) {
+        await db
+          .update(workspaceInvitations)
+          .set({ status: 'ACCEPTED' })
+          .where(
+            and(
+              eq(workspaceInvitations.workspaceId, workspace.id),
+              eq(workspaceInvitations.email, currentUser.email)
+            )
+          )
+      }
+      return { workspaceId: workspace.id, joined: true }
+    }
+
+    // 4. Add as member with the role from the invitation
     await db
       .insert(workspaceMembers)
       .values({
@@ -455,12 +569,19 @@ export const workspacesService = {
         userId,
         role: invitation.role,
       })
-
-    // Mark invitation as accepted
-    await db
-      .update(workspaceInvitations)
-      .set({ status: 'ACCEPTED' })
-      .where(eq(workspaceInvitations.id, invitation.id))
+      
+    // If they logged in with a different email than invited, clean up invites for their actual email too
+    if (currentUser.email !== invitation.email) {
+      await db
+        .update(workspaceInvitations)
+        .set({ status: 'ACCEPTED' })
+        .where(
+          and(
+            eq(workspaceInvitations.workspaceId, workspace.id),
+            eq(workspaceInvitations.email, currentUser.email)
+          )
+        )
+    }
 
     emitToWorkspace(workspace.id, 'member:joined', { userId, role: invitation.role })
 

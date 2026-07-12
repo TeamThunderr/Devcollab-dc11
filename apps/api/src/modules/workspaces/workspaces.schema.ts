@@ -75,11 +75,13 @@ export const memberResponseSchema = z.object({
 })
 
 export const workspaceMemberProfileResponseSchema = z.object({
-  id: z.number(),
+  id: z.union([z.number(), z.string()]),
   name: z.string(),
   email: z.string(),
   avatarUrl: z.string().nullable().optional(),
   role: z.string(),
+  status: z.string().optional(),
+  joinedAt: z.date().optional(),
 })
 
 export const workspaceMemberListResponseSchema = z.array(workspaceMemberProfileResponseSchema)

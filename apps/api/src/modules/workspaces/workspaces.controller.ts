@@ -122,10 +122,16 @@ export const updateMemberRoleHandler = async (
 ) => {
   const updaterId = request.user!.id
   const workspaceId = parseInt(request.params.id, 10)
-  const targetUserId = parseInt(request.params.userId, 10)
   
-  const member = await workspacesService.updateMemberRole(workspaceId, targetUserId, updaterId, request.body)
-  return member
+  if (request.params.userId.startsWith('pending_')) {
+    const invitationId = parseInt(request.params.userId.replace('pending_', ''), 10)
+    const member = await workspacesService.updateInvitationRole(workspaceId, invitationId, updaterId, request.body)
+    return member
+  } else {
+    const targetUserId = parseInt(request.params.userId, 10)
+    const member = await workspacesService.updateMemberRole(workspaceId, targetUserId, updaterId, request.body)
+    return member
+  }
 }
 
 export const removeMemberHandler = async (
@@ -134,9 +140,15 @@ export const removeMemberHandler = async (
 ) => {
   const requesterId = request.user!.id
   const workspaceId = parseInt(request.params.id, 10)
-  const targetUserId = parseInt(request.params.userId, 10)
   
-  await workspacesService.removeMember(workspaceId, targetUserId, requesterId)
+  if (request.params.userId.startsWith('pending_')) {
+    const invitationId = parseInt(request.params.userId.replace('pending_', ''), 10)
+    await workspacesService.revokeInvitation(workspaceId, invitationId, requesterId)
+  } else {
+    const targetUserId = parseInt(request.params.userId, 10)
+    await workspacesService.removeMember(workspaceId, targetUserId, requesterId)
+  }
+  
   reply.code(204).send()
 }
 
