@@ -33,27 +33,27 @@ export function IntelligenceSection() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 overflow-x-auto pb-2">
         <QuickActionChip 
           icon={<BookOpen className="w-4 h-4" />}
-          title="Wiki Plan"
+          title="Wiki"
           onClick={() => handleNavigate("wiki")}
         />
         <QuickActionChip 
           icon={<Code className="w-4 h-4" />}
-          title="Code Review"
+          title="Code"
           onClick={() => handleNavigate("editor")}
         />
         <QuickActionChip 
           icon={<Sun className="w-4 h-4" />}
-          title="Status Report"
+          title="Activity"
           onClick={() => handleNavigate("activity")}
         />
         <QuickActionChip 
           icon={<Activity className="w-4 h-4" />}
-          title="Tech Blueprint"
+          title="Snippets"
           onClick={() => handleNavigate("snippets")}
         />
         <QuickActionChip 
           icon={<HeartPulse className="w-4 h-4" />}
-          title="Project Summary"
+          title="Overview"
           onClick={() => handleNavigate("overview")}
         />
       </div>

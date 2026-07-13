@@ -34,7 +34,7 @@ export function ActivitySection({ projectId }: { projectId?: string }) {
   // Filtered activities
   const activities = useMemo(() => {
     let list = projectId ? projectActivity : workspaceActivity;
-    if (role === 'MEMBER') {
+    if (!projectId && role === 'MEMBER') {
       list = list.filter((a: any) => a.userId?.toString() === currentUserId?.toString());
     }
     return [...list].sort((a, b) => new Date(b.createdAt || b.timestamp || 0).getTime() - new Date(a.createdAt || a.timestamp || 0).getTime());
@@ -124,11 +124,11 @@ export function ActivitySection({ projectId }: { projectId?: string }) {
         </div>
       )}
 
-      {/* Right Column: Live Activity */}
+      {/* Right Column: Recent Activity */}
       <div>
         <div className="flex items-center mb-6 text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em] gap-2">
           <Activity className="w-3.5 h-3.5" />
-          Live Activity
+          Recent Activity
         </div>
 
         <div className="relative border-l border-gray-200 dark:border-[#2C2C2C] ml-3 pl-6 space-y-6">

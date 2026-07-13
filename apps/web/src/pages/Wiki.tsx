@@ -16,7 +16,8 @@ export function Wiki() {
   const updateDoc = useStore(state => state.updateDoc);
   const deleteDoc = useStore(state => state.deleteDoc);
 
-  const projectDocs = allDocs.filter(d => String(d.projectId) === String(projectId) || String(d.projectId) === 'p1');
+  const activeProjectId = projectId || '1';
+  const projectDocs = allDocs.filter(d => String(d.projectId) === String(activeProjectId));
 
   const [selectedDoc, setSelectedDoc] = useState<Doc | null>(projectDocs[0] || null);
   const [isEditing, setIsEditing] = useState(false);
@@ -25,9 +26,15 @@ export function Wiki() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
+  React.useEffect(() => {
+    setSelectedDoc(projectDocs[0] || null);
+    setIsEditing(false);
+    setIsCreating(false);
+  }, [projectId, projectDocs.length]);
+
   const handleStartCreate = () => {
     if (!perms.canCollaborate) {
-      toast.error("Viewers have read-only access to Wiki.");
+      toast.error("Read-only access.");
       return;
     }
     setTitle("");
@@ -55,7 +62,7 @@ export function Wiki() {
 
     try {
       if (isCreating) {
-        await createDoc(projectId || 'p1', title.trim(), content.trim());
+        await createDoc(activeProjectId, title.trim(), content.trim());
         toast.success("Wiki page created successfully!");
       } else if (isEditing && selectedDoc) {
         await updateDoc(selectedDoc.id, {

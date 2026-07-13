@@ -72,8 +72,7 @@ export function RecentNotifications({ projectId }: { projectId?: string }) {
             <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800/50 flex items-center justify-center mb-3">
               <CheckCircle2 className="w-6 h-6 text-green-500/70" />
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">You're all caught up!</p>
-            <p className="text-xs text-gray-500 mt-1">No new notifications to show.</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">No notifications</p>
           </div>
         )}
         

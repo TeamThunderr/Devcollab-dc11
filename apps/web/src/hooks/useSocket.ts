@@ -88,6 +88,7 @@ export function useSocket(projectId?: number | string, workspaceId?: number | st
     };
     newSocket.on('project:member_added', invalidateMembers);
     newSocket.on('project:member_removed', invalidateMembers);
+    newSocket.on('project:member_updated', invalidateMembers);
 
     // Activity events
     newSocket.on('activity:new', () => {

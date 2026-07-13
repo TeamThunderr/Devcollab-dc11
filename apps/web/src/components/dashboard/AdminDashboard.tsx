@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { StatsGrid } from "./StatsGrid";
 import { WorkspaceStats } from "./WorkspaceStats";
 import { ActivitySection } from "./ActivitySection";
+import { TaskModal } from "./TaskModal";
 
 interface AdminDashboardProps {
   projectId?: string;
@@ -18,12 +19,13 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
   const members = useStore(state => state.members);
   const createTask = useStore(state => state.createTask);
 
-  const project = projects.find(p => p.id === projectId) || projects[0];
+  const project = projects.find(p => String(p.id) === String(projectId)) || projects[0];
   const effectiveProjectId = projectId || project?.id?.toString() || "1";
-  const projectTasks = tasks.filter(t => t.projectId === effectiveProjectId || t.projectId === Number(effectiveProjectId));
-  const projectMembers = Array.isArray(project?.members) && project.members.length > 0
-    ? members.filter(m => project.members.includes(m.id))
+  const projectTasks = tasks.filter(t => String(t.projectId) === String(effectiveProjectId) || Number(t.projectId) === Number(effectiveProjectId));
+  const rawProjectMembers = Array.isArray(project?.members) && project.members.length > 0
+    ? members.filter(m => project.members.includes(String(m.id)) || project.members.includes(Number(m.id)))
     : members;
+  const projectMembers = rawProjectMembers.filter(m => m.role?.toUpperCase() !== "VIEWER");
 
   const doneCount = projectTasks.filter(t => t.status === "Done").length;
   const totalTasks = projectTasks.length || 1;
@@ -35,21 +37,44 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
   const [selectedPriority, setSelectedPriority] = useState<Priority>("P1");
   const [selectedDueDate, setSelectedDueDate] = useState("Tomorrow");
   const [isDispatching, setIsDispatching] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
-  const handleDispatchTask = (e: React.FormEvent) => {
+  const resolveDueDate = (target: string) => {
+    const d = new Date();
+    if (target === "Today") {
+      // keep today
+    } else if (target === "Tomorrow") {
+      d.setDate(d.getDate() + 1);
+    } else if (target === "In 3 days") {
+      d.setDate(d.getDate() + 3);
+    } else if (target === "Next Week") {
+      d.setDate(d.getDate() + 7);
+    } else {
+      const parsed = new Date(target);
+      if (!isNaN(parsed.getTime())) return parsed.toISOString().split("T")[0];
+    }
+    return d.toISOString().split("T")[0];
+  };
+
+  const handleDispatchTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) {
       toast.error("Please enter a task title");
       return;
     }
     setIsDispatching(true);
-    setTimeout(() => {
-      createTask(effectiveProjectId, taskTitle.trim(), selectedAssignee, selectedPriority, selectedDueDate);
-      const assigneeName = members.find(m => m.id === selectedAssignee)?.name || "Team Member";
+    try {
+      const formattedDate = resolveDueDate(selectedDueDate);
+      await createTask(effectiveProjectId, taskTitle.trim(), selectedAssignee || undefined, selectedPriority, formattedDate);
+      const assigneeName = members.find(m => String(m.id) === String(selectedAssignee))?.name || "Team Member";
       toast.success(`Task dispatched to ${assigneeName}!`);
       setTaskTitle("");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to dispatch task";
+      toast.error(msg);
+    } finally {
       setIsDispatching(false);
-    }, 400);
+    }
   };
 
   return (
@@ -57,20 +82,24 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
       {/* Monochrome Greeting Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between py-8 border-b border-gray-200 dark:border-[#2C2C2C] gap-4">
         <div>
-          <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">
-            Project Space · Admin Workspace
-          </div>
           <h1 className="text-[2.5rem] font-bold text-gray-900 dark:text-gray-100 tracking-[-0.03em] leading-tight">
             {project?.name}
           </h1>
           <p className="text-gray-500 text-[0.9rem] mt-1">
-            Monitor project health, track velocity metrics, balance team workloads, and dispatch critical tasks.
+            Review project progress, manage team members, and assign tasks.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button 
-            onClick={() => navigate(`/projects/${effectiveProjectId}/board`)}
+            onClick={() => setIsTaskModalOpen(true)}
             className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Create Task
+          </button>
+          <button 
+            onClick={() => navigate(`/projects/${effectiveProjectId}/board`)}
+            className="px-4 py-2 border border-gray-200 dark:border-[#2C2C2C] text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-[#191919]/50 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-2"
           >
             Open Board
           </button>
@@ -97,15 +126,11 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
       <div className="border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] rounded-lg p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-gray-200 dark:border-[#2C2C2C] pb-4">
           <div>
-            <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">Work Dispatcher</div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">Task Assignment Center</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">Quick assign task</h2>
             <p className="text-xs text-gray-500 mt-1">
-              Create new tasks, assign them directly to project members, set priorities and due dates, and dispatch work instantly.
+              Create and assign a task to a project member.
             </p>
           </div>
-          <span className="px-2.5 py-1 rounded text-[10px] font-medium border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 shrink-0 self-start md:self-center">
-            Live Dispatcher Ready
-          </span>
         </div>
 
         <form onSubmit={handleDispatchTask} className="space-y-6">
@@ -191,7 +216,7 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
               className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black font-medium text-sm rounded-md shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
             >
               <Send className={`w-4 h-4 ${isDispatching ? "animate-bounce" : ""}`} />
-              {isDispatching ? "Dispatching..." : "Assign & Dispatch Task"}
+              {isDispatching ? "Assigning..." : "Assign task"}
             </button>
           </div>
         </form>
@@ -201,6 +226,13 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
         <WorkspaceStats projectId={effectiveProjectId} />
         <ActivitySection projectId={effectiveProjectId} />
       </div>
+
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        projectId={effectiveProjectId}
+        mode="create"
+      />
     </div>
   );
 }

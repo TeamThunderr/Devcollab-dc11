@@ -45,7 +45,7 @@ export function GreetingSection({ projectId }: { projectId?: string }) {
         >
           <div className="flex items-center gap-3 mb-2">
             <span className="text-sm font-medium text-gray-400 uppercase tracking-[0.12em]">
-              Project Space · {project.name}
+              {project.name}
             </span>
           </div>
           
@@ -53,7 +53,7 @@ export function GreetingSection({ projectId }: { projectId?: string }) {
             {project.name}
           </h1>
           <p className="text-gray-500 text-[0.9rem]">
-            {projectTasks.length} tasks · {projectMembersCount} members · <span className="text-gray-900 dark:text-gray-100 font-medium">AI tools ready to assist</span>
+            {projectTasks.length} tasks · {projectMembersCount} members
           </p>
         </motion.div>
 
@@ -98,18 +98,20 @@ export function GreetingSection({ projectId }: { projectId?: string }) {
           Good evening, {greetingName}
         </h1>
         <p className="text-gray-500 text-[0.9rem]">
-          {projects.length} project{projects.length !== 1 ? 's' : ''} · <span className="text-gray-900 dark:text-gray-100 font-medium">AI tools ready to assist</span>
+          {projects.length} project{projects.length !== 1 ? 's' : ''}
         </p>
       </motion.div>
 
       <div className="flex items-center gap-3">
-        <button 
-          onClick={() => navigate(`/ai`)}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-[#2C2C2C] text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-[#191919]/50 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-        >
-          <Sparkles className="w-4 h-4" />
-          Ask AI
-        </button>
+        {role !== 'VIEWER' && (
+          <button 
+            onClick={() => navigate(`/ai`)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-[#2C2C2C] text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-[#191919]/50 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            Ask AI
+          </button>
+        )}
         {permissions?.canCreateProject && (
           <button 
             onClick={() => navigate(`/projects`)}

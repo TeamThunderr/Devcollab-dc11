@@ -60,6 +60,52 @@ export const projectsService = {
     return { project, role: upperProjRole }
   },
 
+  async checkAssigneeRole(projectId: number, targetUserId: number) {
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.id, projectId),
+    });
+    if (!project) {
+      throw new AppError(404, 'NOT_FOUND', 'Project not found');
+    }
+
+    const [wsMember] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, project.workspaceId),
+          eq(workspaceMembers.userId, targetUserId)
+        )
+      );
+
+    if (!wsMember) {
+      throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.');
+    }
+
+    const [projMember] = await db
+      .select()
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, targetUserId)
+        )
+      );
+
+    const explicitRole = projMember?.role?.toUpperCase();
+    const wsRole = wsMember.role.toUpperCase();
+
+    if (explicitRole === 'VIEWER' || (!explicitRole && wsRole === 'VIEWER')) {
+      throw new AppError(403, 'FORBIDDEN', 'Viewers cannot be assigned to tasks.');
+    }
+
+    if (!projMember && wsRole !== 'OWNER' && wsRole !== 'ADMIN') {
+      throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.');
+    }
+
+    return { project, role: explicitRole || wsRole };
+  },
+
   async getProjectWithDetails(projectRecord: typeof projects.$inferSelect) {
     const [taskCountResult] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
@@ -423,6 +469,12 @@ export const projectsService = {
       .returning()
 
     if (!updated) throw new AppError(404, 'NOT_FOUND', 'Project member not found')
+
+    emitToProject(projectId, 'project:member_updated', {
+      projectId,
+      userId: targetUserId,
+      role: data.role,
+    })
 
     return updated
   },

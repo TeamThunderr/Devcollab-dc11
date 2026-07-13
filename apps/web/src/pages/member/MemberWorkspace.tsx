@@ -22,14 +22,40 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
   const togglePinSnippet = useStore(state => state.togglePinSnippet);
 
   const [scratchTitle, setScratchTitle] = useState("");
-  const [scratchCode, setScratchCode] = useState("// Draft your reusable code snippet or helper function here...\nconst formatResponse = (data) => {\n  return JSON.stringify(data, null, 2);\n};");
+  const [scratchCode, setScratchCode] = useState("");
   const [scratchLang, setScratchLang] = useState("typescript");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const activeWorkspaceId = useStore(state => state.activeWorkspaceId);
+  const storagePrefix = `ide_${activeWorkspaceId || "1"}_${projectId}_${currentUserId}_`;
+  const [recentFiles, setRecentFiles] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    try {
+      const savedFiles = localStorage.getItem(storagePrefix + "files");
+      if (savedFiles) {
+        const parsed = JSON.parse(savedFiles);
+        const extractFiles = (list: any[]): any[] => {
+          let res: any[] = [];
+          for (const f of list) {
+            if (!f.children) res.push({ name: f.path || f.name, branch: "main", lastEdited: "Recently", type: f.language || "typescript" });
+            else res = res.concat(extractFiles(f.children));
+          }
+          return res;
+        };
+        setRecentFiles(extractFiles(parsed).slice(0, 6));
+      } else {
+        setRecentFiles([]);
+      }
+    } catch {
+      setRecentFiles([]);
+    }
+  }, [storagePrefix, projectId]);
+
   const handleSaveScratch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!scratchTitle.trim()) {
-      toast.error("Please provide a snippet title");
+    if (!scratchTitle.trim() || !scratchCode.trim()) {
+      toast.error("Please provide both snippet title and code");
       return;
     }
     saveSnippet({
@@ -43,6 +69,7 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
     });
     toast.success("Snippet saved to project library!");
     setScratchTitle("");
+    setScratchCode("");
   };
 
   const handleCopy = (code: string, id: string) => {
@@ -54,28 +81,16 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
 
   const recentSnippets = snippets.slice(0, 6);
 
-  // Simulated recent project files edited by the contributor
-  const recentFiles = [
-    { name: "src/api/endpoints.ts", branch: "feature/auth-jwt", lastEdited: "10 mins ago", type: "typescript" },
-    { name: "src/components/auth/LoginForm.tsx", branch: "feature/auth-jwt", lastEdited: "45 mins ago", type: "tsx" },
-    { name: "src/store/useStore.ts", branch: "main", lastEdited: "2 hours ago", type: "typescript" },
-    { name: "src/index.css", branch: "ui/theme-polish", lastEdited: "Yesterday", type: "css" },
-  ];
-
   return (
     <div className="space-y-10 pb-16 max-w-7xl mx-auto px-6 sm:px-8 md:px-12 w-full py-10">
       {/* Monochrome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-200 dark:border-[#2C2C2C] pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">
-            <TerminalSquare className="w-3.5 h-3.5" />
-            My Workspace • Engineering Environment
-          </div>
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Code & Snippet Hub
+            Workspace
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage your recent project files, reusable code snippets, and active development scratchpad.
+            Recent project files, code snippets, and scratchpad.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -84,14 +99,14 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
             className="px-4 py-2.5 rounded-md bg-white dark:bg-[#191919] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#2C2C2C] font-medium text-xs transition-all shadow-sm flex items-center gap-2"
           >
             <Code2 className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-            Full Snippet Library
+            Snippets
           </button>
           <button
             onClick={() => navigate(`/projects/${projectId}/editor`)}
             className="px-5 py-2.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs shadow-sm transition-opacity hover:opacity-90 flex items-center gap-2"
           >
             <TerminalSquare className="w-4 h-4" />
-            Launch VS Code IDE
+            Open Editor
           </button>
         </div>
       </div>
@@ -103,40 +118,45 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
           <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-lg p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2C2C2C] pb-4">
               <div>
-                <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">Active Files</div>
-                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Recently Edited Files</h2>
+                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Recent Files</h2>
               </div>
               <span className="text-xs text-gray-500">Active branches</span>
             </div>
 
             <div className="space-y-2.5">
-              {recentFiles.map((file, i) => (
-                <div
-                  key={i}
-                  onClick={() => navigate(`/projects/${projectId}/editor`)}
-                  className="p-3.5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/40 dark:bg-[#191919]/40 hover:bg-gray-100 dark:hover:bg-[#2C2C2C] transition-all cursor-pointer flex items-center justify-between gap-4 group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-gray-700 dark:text-gray-300 shrink-0">
-                      <FileCode className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 block truncate group-hover:underline transition-all">
-                        {file.name}
-                      </span>
-                      <span className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
-                        <GitBranch className="w-3 h-3 text-gray-400" /> {file.branch}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {file.lastEdited}
-                    </span>
-                    <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" />
-                  </div>
+              {recentFiles.length === 0 ? (
+                <div className="p-6 rounded-md border border-dashed border-gray-200 dark:border-[#2C2C2C] text-center text-gray-500 text-xs">
+                  No recent files yet.
                 </div>
-              ))}
+              ) : (
+                recentFiles.map((file, i) => (
+                  <div
+                    key={i}
+                    onClick={() => navigate(`/projects/${projectId}/editor`)}
+                    className="p-3.5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/40 dark:bg-[#191919]/40 hover:bg-gray-100 dark:hover:bg-[#2C2C2C] transition-all cursor-pointer flex items-center justify-between gap-4 group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] text-gray-700 dark:text-gray-300 shrink-0">
+                        <FileCode className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 block truncate group-hover:underline transition-all">
+                          {file.name}
+                        </span>
+                        <span className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                          <GitBranch className="w-3 h-3 text-gray-400" /> {file.branch}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {file.lastEdited}
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -144,19 +164,18 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
           <div className="bg-white dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-lg p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2C2C2C] pb-4">
               <div>
-                <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">Library</div>
-                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Recent & Pinned Snippets ({snippets.length})</h2>
+                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Snippets ({snippets.length})</h2>
               </div>
               <button
                 onClick={() => navigate(`/projects/${projectId}/snippets`)}
                 className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                View Library →
+                View all →
               </button>
             </div>
 
             {snippets.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 text-xs">No snippets stored yet. Use the scratchpad to save one!</div>
+              <div className="text-center py-8 text-gray-500 text-xs">No snippets stored yet.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {recentSnippets.map(snippet => (
@@ -213,10 +232,8 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
           <form onSubmit={handleSaveScratch} className="space-y-4">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2C2C2C] pb-3">
               <div>
-                <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">Drafting</div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Code Scratchpad</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Scratchpad</h3>
               </div>
-              <span className="text-[11px] text-gray-500">Instant draft</span>
             </div>
 
             <div className="space-y-3">
@@ -261,12 +278,12 @@ export function MemberWorkspace({ projectId: propsId }: MemberWorkspaceProps = {
               type="submit"
               className="w-full py-2.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs shadow-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
             >
-              <Plus className="w-4 h-4" /> Save Snippet to Library
+              <Plus className="w-4 h-4" /> Save Snippet
             </button>
           </form>
 
           <div className="p-4 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 text-xs text-gray-700 dark:text-gray-300 flex items-center justify-between">
-            <span>Need AI code generation? Use the <button onClick={() => navigate(`/projects/${projectId}/ai`)} className="font-semibold underline">AI Assistant</button> to refactor snippets automatically.</span>
+            <span>Use the <button onClick={() => navigate(`/projects/${projectId}/ai`)} className="font-semibold underline">AI Assistant</button> for code generation or refactoring.</span>
           </div>
         </div>
       </div>
