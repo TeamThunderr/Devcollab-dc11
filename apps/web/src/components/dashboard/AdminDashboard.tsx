@@ -57,7 +57,6 @@ export function AdminDashboard({ projectId }: AdminDashboardProps = {}) {
   };
 
   const handleDispatchTask = async (e: React.FormEvent) => {
-  const handleDispatchTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) {
       toast.error("Please enter a task title");
