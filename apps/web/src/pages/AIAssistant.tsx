@@ -40,11 +40,14 @@ function ConvoItem({
   const timeStr = new Date(conv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect() }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left w-full transition-colors"
+      className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left w-full transition-colors group cursor-pointer"
       style={{ background: active || hov ? t.convoHoverBg : 'transparent', color: active || hov ? t.textSecondary : t.textMuted }}
     >
       <MessageSquare className="w-3 h-3 flex-shrink-0" />
@@ -59,7 +62,7 @@ function ConvoItem({
           <Trash2 className="w-3 h-3" />
         </button>
       )}
-    </button>
+    </div>
   )
 }
 

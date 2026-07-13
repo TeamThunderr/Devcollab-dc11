@@ -142,8 +142,8 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
       },
       auth: oauthPlugin.GOOGLE_CONFIGURATION
     },
-    startRedirectPath: '/auth/google',
-    callbackUri: `${env.BACKEND_URL}/auth/google/callback`,
+    startRedirectPath: '/api/auth/google',
+    callbackUri: `${env.BACKEND_URL}/api/auth/google/callback`,
     scope: ['profile', 'email']
   })
 }
@@ -158,14 +158,14 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
       },
       auth: oauthPlugin.GITHUB_CONFIGURATION
     },
-    startRedirectPath: '/auth/github',
-    callbackUri: `${env.BACKEND_URL}/auth/github/callback`,
+    startRedirectPath: '/api/auth/github',
+    callbackUri: `${env.BACKEND_URL}/api/auth/github/callback`,
     scope: ['read:user', 'user:email']
   })
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────
-app.register(authRoutes, { prefix: '/auth' })
+// Removed redundant /auth routes registration
 
 // ── Start server ─────────────────────────────────────────────────────────────
 const address = await app.listen({ port: env.PORT, host: '0.0.0.0' })

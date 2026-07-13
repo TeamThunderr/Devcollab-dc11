@@ -23,6 +23,12 @@ export function Invite() {
 
   const isEmailMismatch = intendedEmail && currentUser && currentUser.email.toLowerCase() !== intendedEmail.toLowerCase();
 
+  React.useEffect(() => {
+    if (isEmailMismatch) {
+      logout();
+    }
+  }, [isEmailMismatch, logout]);
+
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code) {
@@ -31,8 +37,7 @@ export function Invite() {
     }
     
     if (isEmailMismatch) {
-      setError(`This invitation is for ${intendedEmail}. Please log out and sign in with the correct account.`);
-      return;
+      return; // Will be redirected by AuthGuard
     }
 
     setLoading(true);
@@ -43,6 +48,7 @@ export function Invite() {
       if (data?.workspaceId) {
         setActiveWorkspace(data.workspaceId);
       }
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
       await queryClient.invalidateQueries({ queryKey: ['my-workspaces'] });
       window.dispatchEvent(new Event('workspace:changed'));
       navigate('/dashboard');
@@ -64,23 +70,6 @@ export function Invite() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Join Workspace</h2>
           <p className="text-gray-500">Enter the invitation code from your email to join the workspace.</p>
         </div>
-
-        {isEmailMismatch && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-            <div className="text-sm text-amber-800 dark:text-amber-400">
-              <p className="font-semibold mb-1">Account Mismatch</p>
-              <p>This invitation was sent to <strong>{intendedEmail}</strong>, but you are logged in as <strong>{currentUser?.email}</strong>.</p>
-              <button 
-                type="button"
-                onClick={() => logout()}
-                className="mt-2 font-medium underline hover:text-amber-900 dark:hover:text-amber-300"
-              >
-                Log out to switch accounts
-              </button>
-            </div>
-          </div>
-        )}
 
         <form onSubmit={handleJoin} className="space-y-6">
           <div>
