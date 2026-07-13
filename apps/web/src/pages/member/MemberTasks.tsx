@@ -46,15 +46,11 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
       {/* Monochrome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-[#2C2C2C] pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            My Work • Task Execution Center
-          </div>
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            My Assigned Tasks
+            My Tasks
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Execute sprint deliverables, track deadlines, and transition work status with one click.
+            Your assigned tasks across the sprint.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -62,7 +58,7 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
             onClick={() => navigate(`/projects/${projectId}/board`)}
             className="px-4 py-2 rounded-md bg-white dark:bg-[#191919] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#2C2C2C] font-medium text-xs transition-all shadow-sm"
           >
-            Open Kanban Board →
+            Kanban Board →
           </button>
         </div>
       </div>
@@ -97,8 +93,8 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
         {filteredTasks.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-[#191919] rounded-lg border border-dashed border-gray-200 dark:border-[#2C2C2C]">
             <CheckCircle2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">No tasks found in this section</h3>
-            <p className="text-xs text-gray-500 mt-1">You are all caught up! Check the Kanban board for new assignments.</p>
+            <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">No tasks found</h3>
+            <p className="text-xs text-gray-500 mt-1">Check the Kanban board for assignments.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -138,7 +134,7 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
                       onClick={() => navigate(`/projects/${projectId}/editor`)}
                       className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
                     >
-                      <TerminalSquare className="w-3.5 h-3.5" /> Open Code IDE
+                      <TerminalSquare className="w-3.5 h-3.5" /> Open Editor
                     </button>
 
                     <div className="flex items-center gap-2">
@@ -155,7 +151,7 @@ export function MemberTasks({ projectId: propsId }: MemberTasksProps = {}) {
                           onClick={(e) => handleQuickStatus(task.id, "In Review", task.title, e)}
                           className="px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs transition-opacity hover:opacity-90 shadow-sm flex items-center gap-1.5"
                         >
-                          <GitPullRequest className="w-3.5 h-3.5" /> Ready for Review
+                          <GitPullRequest className="w-3.5 h-3.5" /> Submit for Review
                         </button>
                       )}
                       {frontendStatus !== "Done" && (

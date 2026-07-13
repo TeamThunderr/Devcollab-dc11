@@ -37,6 +37,12 @@ export function Snippets() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
 
+  React.useEffect(() => {
+    setSelectedSnippet(null);
+    setIsEditing(false);
+    setIsCreating(false);
+  }, [projectId]);
+
   // Form state
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
@@ -55,7 +61,7 @@ export function Snippets() {
 
   const handleStartCreate = () => {
     if (!perms.canCollaborate) {
-      toast.error("Viewers have read-only access to snippets.");
+      toast.error("Read-only access.");
       return;
     }
     setTitle("");

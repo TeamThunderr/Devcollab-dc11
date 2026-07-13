@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, CreditCard, Info, Shield, Zap } from "lucide-react";
+import { Check, CreditCard, Shield, Zap } from "lucide-react";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
 import { useRole } from "../context/RBACContext";
@@ -87,18 +87,6 @@ export function Billing() {
           </p>
         </div>
 
-        {/* Read-Only Banner for Members/Viewers */}
-        {!isAdmin && (
-          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-            <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Read-only view</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                You are viewing billing details in read-only mode. Only Workspace Admins or Owners can upgrade or modify subscription plans.
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Current Plan Alert */}
         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">

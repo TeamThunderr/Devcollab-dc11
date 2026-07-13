@@ -23,11 +23,7 @@ export const tasksService = {
     const workspaceId = project.workspaceId
 
     if (data.assigneeId !== undefined && data.assigneeId !== null) {
-      try {
-        await projectsService.checkProjectPermission(projectId, data.assigneeId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
-      } catch (err) {
-        throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.')
-      }
+      await projectsService.checkAssigneeRole(projectId, data.assigneeId)
     }
 
     const [task] = await db
@@ -100,11 +96,7 @@ export const tasksService = {
     const workspaceId = project.workspaceId
 
     if (data.assigneeId !== undefined && data.assigneeId !== null) {
-      try {
-        await projectsService.checkProjectPermission(task.projectId, data.assigneeId, ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER'])
-      } catch (err) {
-        throw new AppError(400, 'BAD_REQUEST', 'This user is not a member of this project. Add them to the project first before assigning tasks.')
-      }
+      await projectsService.checkAssigneeRole(task.projectId, data.assigneeId)
     }
 
     const updateData: any = { ...data }

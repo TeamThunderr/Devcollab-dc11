@@ -192,8 +192,8 @@ export function Activity() {
   // Filtered activities
   const filteredActivities = useMemo(() => {
     return activities.filter(act => {
-      // Role-based filtering: Members only see their own activities
-      if (role === 'MEMBER' && act.userId?.toString() !== currentUserId?.toString()) return false;
+      // Role-based filtering: Members only see their own activities at the workspace level
+      if (!projectId && role === 'MEMBER' && act.userId?.toString() !== currentUserId?.toString()) return false;
       
       // Project filtering
       if (projectId && act.projectId?.toString() !== projectId.toString()) return false;
@@ -367,11 +367,11 @@ export function Activity() {
             </div>
             <h1 className="text-[2.25rem] font-bold tracking-tight text-gray-900 dark:text-gray-100 leading-tight flex items-center gap-3">
               <ActivityIcon className="w-8 h-8 text-gray-500 dark:text-gray-400" />
-              {role === 'MEMBER' ? 'My Activity Pulse' : 'Activity Command Center'}
+              {role === 'MEMBER' ? 'My Activity' : 'Activity Command Center'}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm max-w-2xl">
               {role === 'MEMBER' 
-                ? 'An interactive chronological feed of your contributions, edits, and collaborations.' 
+                ? 'Chronological feed of your recent contributions and edits.' 
                 : `Real-time activity pulse and historical audit feed across ${projectId ? 'this project' : workspace.name}.`}
             </p>
           </div>
@@ -792,7 +792,7 @@ export function Activity() {
                 {searchQuery || actionFilter !== 'all' || selectedDayFilter
                   ? "No activities match your current search query or active filter chips."
                   : role === 'MEMBER' 
-                  ? "You haven't performed any logged actions in this workspace yet." 
+                  ? "No activity logged yet." 
                   : "No events have been recorded in this scope."}
               </p>
               {(searchQuery || actionFilter !== 'all' || selectedDayFilter || dateFilter !== 'All Time' || projectFilter !== 'All Projects') && (
@@ -827,5 +827,5 @@ export function Activity() {
   );
 
   if (projectId) return content;
-  return <DashboardLayout title={role === 'MEMBER' ? "My Activity Pulse" : "Activity Command Center"}>{content}</DashboardLayout>;
+  return <DashboardLayout title={role === 'MEMBER' ? "My Activity" : "Activity Command Center"}>{content}</DashboardLayout>;
 }

@@ -171,7 +171,7 @@ export function MyTasks() {
                 </div>
               ) : displayedTasks.length > 0 ? (
                 displayedTasks.map(task => {
-                  const project = projects.find(p => p.id === task.projectId);
+                  const project = projects.find(p => String(p.id) === String(task.projectId) || p.id === task.projectId);
                   const uiStatus = toFrontendStatus(task.status);
                   return (
                     <div 

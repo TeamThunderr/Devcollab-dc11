@@ -21,7 +21,6 @@ import { useStore } from "../store/useStore";
 
 export function ProjectOverview() {
   const { projectId } = useParams();
-  const targetProjectId = projectId || 'p1';
   const { role } = useRole();
   const perms = getProjectPermissions(role);
 
@@ -31,12 +30,12 @@ export function ProjectOverview() {
   const workspaceId = activeWorkspaceObj?.id;
 
   const { data: projects = [] } = useProjects(workspaceId);
-  // We need to parse targetProjectId as number
-  const parsedProjectId = parseInt(targetProjectId, 10) || projects[0]?.id;
+  const targetProjectId = projectId || (projects[0]?.id ? String(projects[0].id) : '1');
+  const parsedProjectId = parseInt(targetProjectId, 10) || projects[0]?.id || 1;
   
   const { data: tasks = [] } = useTasks(parsedProjectId);
   
-  const project = projects.find(p => p.id === parsedProjectId) || projects[0];
+  const project = projects.find(p => String(p.id) === String(targetProjectId) || p.id === parsedProjectId) || projects[0];
 
   const totalTasksCount = tasks.length;
   const completedTasksCount = tasks.filter(t => t.status === "Done").length;

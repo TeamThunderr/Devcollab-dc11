@@ -46,14 +46,11 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
       {/* Monochrome Greeting Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between py-8 border-b border-gray-200 dark:border-[#2C2C2C] gap-4">
         <div>
-          <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">
-            Project Space · Developer Workspace
-          </div>
           <h1 className="text-[2.5rem] font-bold text-gray-900 dark:text-gray-100 tracking-[-0.03em] leading-tight">
-            Ready to build, {currentMember.name.split(" ")[0]}?
+            Overview
           </h1>
           <p className="text-gray-500 text-[0.9rem] mt-1">
-            Welcome to your engineering environment for {project?.name}. Here is your sprint summary and immediate development priorities.
+            {project?.name} sprint summary and active tasks.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -62,7 +59,7 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
             className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
           >
             <TerminalSquare className="w-4 h-4" />
-            Launch VS Code IDE
+            Open Editor
           </button>
           <button 
             onClick={() => navigate(`/projects/${projectId}/tasks`)}
@@ -77,11 +74,11 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
       {/* Reused StatsGrid Component */}
       <StatsGrid
         firstValue={`${myInProgress.length}`}
-        firstLabel="Active Work in Sprint"
+        firstLabel="Active Tasks"
         secondValue={`${dueToday.length}`}
-        secondLabel="Due Today / Priority"
+        secondLabel="Due Today"
         thirdValue={`${completionRate}%`}
-        thirdLabel="Sprint Velocity Rate"
+        thirdLabel="Completion Rate"
       />
 
       {/* Continue Working & Development Environment */}
@@ -90,9 +87,8 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
         <div className="lg:col-span-7 bg-white dark:bg-[#191919] border border-gray-200 dark:border-[#2C2C2C] rounded-lg p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2C2C2C] pb-4">
             <div>
-              <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">Active Development</div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Continue Working</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Jump straight into your active code branches and assigned deliverables.</p>
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Active Tasks</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Your currently assigned tasks.</p>
             </div>
             <button 
               onClick={() => navigate(`/projects/${projectId}/tasks`)}
@@ -105,12 +101,12 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
           {myInProgress.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 dark:bg-[#191919]/40 rounded-md border border-dashed border-gray-200 dark:border-[#2C2C2C]">
               <CheckCircle2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No tasks currently In Progress</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No tasks in progress.</p>
               <button 
                 onClick={() => navigate(`/projects/${projectId}/tasks`)}
                 className="mt-3 px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black text-xs font-medium shadow-sm transition-opacity hover:opacity-90"
               >
-                Grab a Task from My Tasks
+                View My Tasks
               </button>
             </div>
           ) : (
@@ -132,7 +128,7 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
                     onClick={() => navigate(`/projects/${projectId}/editor`)}
                     className="px-4 py-2 rounded-md bg-black dark:bg-white text-white dark:text-black font-medium text-xs shadow-sm transition-opacity hover:opacity-90 shrink-0 flex items-center gap-1.5"
                   >
-                    <TerminalSquare className="w-3.5 h-3.5" /> Open Code
+                    <TerminalSquare className="w-3.5 h-3.5" /> Open Editor
                   </button>
                 </div>
               ))}
@@ -145,12 +141,8 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2C2C2C] pb-4">
               <div>
-                <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">Engineering Hub</div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">My Environment</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mt-0.5">Quick Links</h3>
               </div>
-              <span className="text-xs font-medium px-2 py-0.5 rounded border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300">
-                Ready
-              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -180,14 +172,14 @@ export function MemberOverview({ projectId: propsId }: MemberOverviewProps = {})
 
           <div className="p-4 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-gray-50/50 dark:bg-[#191919]/50 flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 block">AI Engineering Copilot</span>
-              <span className="text-[11px] text-gray-500">Automated code reviews & snippet generation.</span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 block">AI Assistant</span>
+              <span className="text-[11px] text-gray-500">Code reviews and snippet generation.</span>
             </div>
             <button 
               onClick={() => navigate(`/projects/${projectId}/ai`)}
               className="px-3.5 py-1.5 rounded-md border border-gray-200 dark:border-[#2C2C2C] bg-white dark:bg-[#191919] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] text-gray-900 dark:text-gray-100 font-medium text-xs shadow-sm transition-all shrink-0"
             >
-              Ask AI
+              Open AI
             </button>
           </div>
         </div>

@@ -410,7 +410,7 @@ export const useStore = create<WorkspaceState>((set, get) => ({
     if (member) {
       const newActivity: ActivityItem = {
         id: Math.random().toString(36).substr(2, 9),
-        projectId: 'p1',
+        projectId: null,
         userId: 'm1',
         action: `updated role of ${member.name} to ${uppercaseRole}`,
         timestamp: new Date().toISOString()
@@ -437,7 +437,7 @@ export const useStore = create<WorkspaceState>((set, get) => ({
     if (member) {
       const newActivity: ActivityItem = {
         id: Math.random().toString(36).substr(2, 9),
-        projectId: 'p1',
+        projectId: null,
         userId: 'm1',
         action: `removed ${member.name} from workspace`,
         timestamp: new Date().toISOString()
