@@ -81,14 +81,11 @@ export function Projects() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
-            <div className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-[0.12em]">
-              {workspace.name} workspace · free plan
-            </div>
             <h1 className="text-[2.5rem] font-bold tracking-[-0.03em] text-gray-900 dark:text-gray-100 leading-tight">
-              {workspace.name} <span className="text-gray-400">Projects</span>
+              Projects
             </h1>
             <p className="text-gray-500 text-[0.9rem]">
-              Track project milestones, tasks status, and stream alignments inside a unified workspace.
+              Manage projects and tasks across your workspace.
             </p>
           </div>
 

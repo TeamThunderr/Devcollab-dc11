@@ -1,5 +1,5 @@
 import React from "react";
-import { useStore } from "../../store/useStore";
+import { useStore, toFrontendStatus } from "../../store/useStore";
 import { Award, CheckCircle2, Clock, Flag } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -7,39 +7,62 @@ interface ViewerTimelineProps {
   projectId?: string;
 }
 
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return "Recent";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return dateStr;
+  }
+};
+
 export function ViewerTimeline({ projectId: propsId }: ViewerTimelineProps = {}) {
   const { projectId: routeId } = useParams();
   const projects = useStore(state => state.projects);
   const activeProject = projects.find(p => String(p.id) === String(routeId || propsId)) || projects[0];
   const projectId = propsId || routeId || activeProject?.id;
   const navigate = useNavigate();
+  const tasks = useStore(state => state.tasks);
   const sprints = useStore(state => state.sprints || []);
 
   const projectSprints = sprints.filter((s: any) => String(s.projectId) === String(projectId));
+  const projectTasks = tasks.filter(t => String(t.projectId) === String(projectId));
 
-  const timelineEvents = projectSprints.map((s: any) => ({
-    quarter: s.startDate ? new Date(s.startDate).toLocaleDateString() : "Milestone",
-    title: s.name,
-    date: `${s.startDate ? new Date(s.startDate).toLocaleDateString() : ''} - ${s.endDate ? new Date(s.endDate).toLocaleDateString() : ''}`,
-    status: s.status === 'COMPLETED' ? 'Completed' : s.status === 'ACTIVE' ? 'In Progress' : 'Planned',
-    description: s.goal || "Sprint deliverables and tasks.",
-    highlights: ["Sprint tasks and milestones tracked inside project board."]
-  }));
+  // If sprints exist, use them. If not, derive chronological events from real project tasks so there is no empty gap!
+  const timelineEvents = projectSprints.length > 0
+    ? projectSprints.map((s: any) => ({
+        quarter: formatDate(s.startDate || s.createdAt),
+        title: s.name,
+        date: `${formatDate(s.startDate)} - ${formatDate(s.endDate)}`,
+        status: s.status === 'COMPLETED' ? 'Completed' : s.status === 'ACTIVE' ? 'In Progress' : 'Planned',
+        description: s.goal || "Sprint deliverables and tasks.",
+        highlights: ["Sprint tasks and milestones tracked inside project board."]
+      }))
+    : projectTasks.map((t: any) => {
+        const st = toFrontendStatus(t.status);
+        const isDone = st === "Done";
+        return {
+          quarter: formatDate(t.createdAt || t.dueDate),
+          title: t.title,
+          date: t.dueDate ? `Due ${formatDate(t.dueDate)}` : `Created ${formatDate(t.createdAt)}`,
+          status: isDone ? 'Completed' : st === 'In Progress' ? 'In Progress' : 'Planned',
+          description: t.description || "Task deliverable and execution details.",
+          highlights: [`Priority: ${t.priority || "Normal"}`, `Status: ${st}`]
+        };
+      });
 
   return (
     <div className="space-y-10 pb-16 max-w-7xl mx-auto px-6 sm:px-8 md:px-12 w-full py-10">
-      {/* Monochrome Header */}
+      {/* Clean Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-200 dark:border-[#2C2C2C] pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-gray-200 dark:border-[#2C2C2C] bg-gray-50 dark:bg-[#2C2C2C] text-gray-700 dark:text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">
-            <Award className="w-3.5 h-3.5" />
-            Project Roadmap • Chronological Timeline
-          </div>
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Release Roadmap & Milestones
+            Timeline
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Chronological overview of past engineering deliverables, active sprint goals, and upcoming quarterly targets.
+            Chronological record of project milestones and tasks.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -47,7 +70,7 @@ export function ViewerTimeline({ projectId: propsId }: ViewerTimelineProps = {})
             onClick={() => navigate(`/projects/${projectId}/progress`)}
             className="px-4 py-2.5 rounded-md bg-white dark:bg-[#191919] hover:bg-gray-50 dark:hover:bg-[#2C2C2C] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#2C2C2C] font-medium text-xs transition-all shadow-sm flex items-center gap-2"
           >
-            Check Progress Ratios →
+            View Progress →
           </button>
         </div>
       </div>
@@ -56,7 +79,7 @@ export function ViewerTimeline({ projectId: propsId }: ViewerTimelineProps = {})
       <div className="relative border-l-2 border-gray-200 dark:border-[#2C2C2C] ml-4 md:ml-8 space-y-12 pl-6 md:pl-10">
         {timelineEvents.length === 0 ? (
           <div className="p-8 rounded-lg border border-dashed border-gray-200 dark:border-[#2C2C2C] text-center text-gray-500 text-sm">
-            No sprints or chronological milestones scheduled for this project yet.
+            No timeline events for this project yet.
           </div>
         ) : (
           timelineEvents.map((ev: any, i: number) => (
@@ -96,7 +119,7 @@ export function ViewerTimeline({ projectId: propsId }: ViewerTimelineProps = {})
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <span className="text-xs font-semibold text-gray-900 dark:text-white block">Key Deliverables & Highlights:</span>
+                  <span className="text-xs font-semibold text-gray-900 dark:text-white block">Deliverable Details:</span>
                   <ul className="space-y-1.5">
                     {ev.highlights.map((hl: string, j: number) => (
                       <li key={j} className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">

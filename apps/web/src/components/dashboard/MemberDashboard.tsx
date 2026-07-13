@@ -55,7 +55,7 @@ export function MemberDashboard() {
           <div className="space-y-4 flex-1">
             {topPendingTasks.length > 0 ? (
               topPendingTasks.map(task => {
-                const project = projects.find(p => p.id === task.projectId);
+                const project = projects.find(p => String(p.id) === String(task.projectId) || p.id === task.projectId);
                 return (
                   <div 
                     key={task.id} 
@@ -83,9 +83,7 @@ export function MemberDashboard() {
               })
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-gray-200 dark:border-[#2C2C2C] rounded-lg">
-                <CheckCircle className="w-8 h-8 text-green-500 mb-3" />
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">All caught up!</h4>
-                <p className="text-xs text-gray-500">You have no pending tasks assigned.</p>
+                <p className="text-xs text-gray-500">No pending tasks assigned.</p>
               </div>
             )}
           </div>

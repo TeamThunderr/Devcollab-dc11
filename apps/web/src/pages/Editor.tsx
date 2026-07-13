@@ -120,6 +120,38 @@ export function Editor() {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reload state from localStorage when switching projects (storagePrefix changes)
+  useEffect(() => {
+    try {
+      const savedFiles = localStorage.getItem(storagePrefix + "files");
+      setFiles(savedFiles ? JSON.parse(savedFiles) : []);
+
+      const savedOpen = localStorage.getItem(storagePrefix + "openFileIds");
+      setOpenFileIds(savedOpen ? JSON.parse(savedOpen) : []);
+
+      const savedActive = localStorage.getItem(storagePrefix + "activeFileId");
+      setActiveFileId(savedActive ? savedActive : null);
+
+      const savedContents = localStorage.getItem(storagePrefix + "fileContents");
+      setFileContents(savedContents ? JSON.parse(savedContents) : {});
+
+      const savedUnsaved = localStorage.getItem(storagePrefix + "unsavedFiles");
+      setUnsavedFiles(savedUnsaved ? JSON.parse(savedUnsaved) : {});
+
+      const savedFolders = localStorage.getItem(storagePrefix + "expandedFolders");
+      setExpandedFolders(savedFolders ? JSON.parse(savedFolders) : {});
+
+      const savedCursors = localStorage.getItem(storagePrefix + "cursorPositions");
+      setCursorPositions(savedCursors ? JSON.parse(savedCursors) : {});
+    } catch {
+      setFiles([]);
+      setOpenFileIds([]);
+      setActiveFileId(null);
+      setFileContents({});
+      setUnsavedFiles({});
+    }
+  }, [storagePrefix]);
+
   // Persist state changes per user & project
   useEffect(() => {
     try {
@@ -189,7 +221,7 @@ export function Editor() {
   const handleCodeChange = (newCode: string) => {
     if (!activeFileId) return;
     if (!perms.canCollaborate) {
-      toast.error("Viewers have read-only access to code files.");
+      toast.error("Read-only access.");
       return;
     }
     setFileContents(prev => ({ ...prev, [activeFileId]: newCode }));

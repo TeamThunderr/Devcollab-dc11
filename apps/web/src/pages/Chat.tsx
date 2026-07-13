@@ -166,7 +166,7 @@ export function Chat() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               className="w-full bg-transparent p-3.5 resize-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none disabled:opacity-60"
-              placeholder={perms.canCollaborate && !error ? `Message #${activeChannel}... (Press Enter to send, Shift+Enter for new line)` : "You are in read-only mode or restricted from this channel."}
+              placeholder={perms.canCollaborate && !error ? `Message #${activeChannel}... (Press Enter to send, Shift+Enter for new line)` : "Read-only access."}
               rows={2}
             />
             <div className="bg-white/60 dark:bg-gray-900/60 border-t border-gray-200/80 dark:border-gray-800/80 px-3 py-2 flex items-center justify-between">
