@@ -2,11 +2,12 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { requireAuth } from '../../middlewares/auth.js'
 import {
-  getMyNotificationsHandler,
   getProjectActivityHandler,
   getWorkspaceActivityHandler,
-  markAllNotificationsReadHandler,
-  markNotificationReadHandler,
+  getWorkspaceNotificationsHandler,
+  getWorkspaceUnreadCountHandler,
+  markAllWorkspaceNotificationsReadHandler,
+  markWorkspaceNotificationReadHandler,
 } from './activity.controller.js'
 import {
   activityFeedListSchema,
@@ -38,24 +39,44 @@ export const projectActivityRoutes: FastifyPluginAsyncZod = async (app) => {
   }, getProjectActivityHandler)
 }
 
-// Notifications — /api/me/notifications
-export const notificationsRoutes: FastifyPluginAsyncZod = async (app) => {
+// Workspace notifications — /api/workspaces/:workspaceId/notifications
+export const workspaceNotificationsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', requireAuth)
 
   app.get('/', {
-    schema: { response: { 200: notificationListSchema } },
-  }, getMyNotificationsHandler)
+    schema: {
+      params: z.object({ workspaceId: z.string() }),
+      querystring: z.object({ is_read: z.string().optional() }),
+      response: { 200: notificationListSchema },
+    },
+  }, getWorkspaceNotificationsHandler)
+
+  app.get('/unread-count', {
+    schema: {
+      params: z.object({ workspaceId: z.string() }),
+      response: { 200: z.object({ count: z.number() }) },
+    },
+  }, getWorkspaceUnreadCountHandler)
 
   app.patch('/:notificationId/read', {
     schema: {
-      params: z.object({ notificationId: z.string() }),
+      params: z.object({ workspaceId: z.string(), notificationId: z.string() }),
       response: { 200: notificationSchema },
     },
-  }, markNotificationReadHandler)
+  }, markWorkspaceNotificationReadHandler)
+
+  app.patch('/mark-all-read', {
+    schema: {
+      params: z.object({ workspaceId: z.string() }),
+      response: { 200: z.object({ success: z.boolean() }) },
+    },
+  }, markAllWorkspaceNotificationsReadHandler)
 
   app.patch('/read-all', {
     schema: {
+      params: z.object({ workspaceId: z.string() }),
       response: { 200: z.object({ success: z.boolean() }) },
     },
-  }, markAllNotificationsReadHandler)
+  }, markAllWorkspaceNotificationsReadHandler)
 }
+

@@ -3,6 +3,7 @@ import { db } from '../../db/client.js'
 import { chatMessages, users, projectMembers, projects, workspaceMembers } from '../../db/schema.js'
 import { AppError } from '../../lib/errors.js'
 import { projectsService } from '../projects/projects.service.js'
+import { activityService } from '../activity/activity.service.js'
 import { emitToProject } from '../../socket/emit.js'
 import type { CreateChatMessageInput } from './chat.schema.js'
 
@@ -102,6 +103,60 @@ export const chatService = {
 
     emitToProject(projectId, 'chat:message', payload)
 
+    // Mention detection and notification creation
+    try {
+      const project = await db.query.projects.findFirst({
+        where: eq(projects.id, projectId),
+        columns: { id: true, name: true, workspaceId: true },
+      })
+
+      if (project && project.workspaceId) {
+        const matches = [...data.content.matchAll(/(?:^|\s)@([a-zA-Z0-9_.-]+)/g)]
+        const handles = Array.from(new Set(matches.map(m => (m[1] || '').toLowerCase()).filter(Boolean)))
+
+        if (handles.length > 0) {
+          const wsMembers = await db
+            .select({
+              userId: users.id,
+              name: users.name,
+              email: users.email,
+            })
+            .from(workspaceMembers)
+            .innerJoin(users, eq(users.id, workspaceMembers.userId))
+            .where(eq(workspaceMembers.workspaceId, project.workspaceId))
+
+          for (const wsMember of wsMembers) {
+            if (wsMember.userId === userId) continue // Do not notify self
+
+            const emailPrefix = (wsMember.email?.split('@')[0] || '').toLowerCase()
+            const nameNoSpaces = (wsMember.name || '').replace(/\s+/g, '').toLowerCase()
+            const nameLower = (wsMember.name || '').toLowerCase()
+
+            const isMentioned = handles.some(h => 
+              h === emailPrefix || h === nameNoSpaces || (wsMember.name && !wsMember.name.includes(' ') && h === nameLower)
+            )
+
+            if (isMentioned) {
+              await activityService.createAndEmitNotification({
+                workspaceId: project.workspaceId,
+                recipientUserId: wsMember.userId,
+                actorUserId: userId,
+                type: 'mention',
+                contextType: 'chat',
+                contextId: msg.id,
+                message: `${user?.name || 'Someone'} mentioned you in ${project.name} (#${data.channel || 'general'})`,
+                link: `/projects/${projectId}/chat/${data.channel || 'general'}?messageId=${msg.id}`,
+              })
+            }
+          }
+        }
+      }
+    } catch (err) {
+      // Do not block chat message sending if mention notification processing fails
+      console.error('Failed to process mention notifications:', err)
+    }
+
     return payload
   },
 }
+

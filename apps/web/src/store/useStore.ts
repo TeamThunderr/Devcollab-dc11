@@ -54,6 +54,8 @@ export interface Task {
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string | number;
+  _optimistic?: boolean;
+  _optimisticAt?: number;
 }
 
 export interface Member {
@@ -246,7 +248,9 @@ export const useStore = create<WorkspaceState>((set, get) => ({
       tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { 
         ...t, 
         status: toFrontendStatus(status),
-        completedAt: toFrontendStatus(status) === 'Done' ? new Date().toISOString() : t.completedAt
+        completedAt: toFrontendStatus(status) === 'Done' ? new Date().toISOString() : t.completedAt,
+        _optimistic: true,
+        _optimisticAt: Date.now()
       } : t)
     }));
     const newActivity: ActivityItem = {
@@ -260,10 +264,13 @@ export const useStore = create<WorkspaceState>((set, get) => ({
 
     try {
       await api.patch(`/api/tasks/${taskId}`, { status: toBackendStatus(status) });
+      set((state) => ({
+        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, _optimistic: false } : t)
+      }));
     } catch (err: any) {
       console.error("Failed to update task status in backend, rolling back:", err);
       set((state) => ({
-        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, status: prevStatus, completedAt: prevCompletedAt } : t),
+        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, status: prevStatus, completedAt: prevCompletedAt, _optimistic: false } : t),
         activities: prevActivities
       }));
       throw err;
@@ -276,14 +283,17 @@ export const useStore = create<WorkspaceState>((set, get) => ({
     const prevAssigneeId = task.assigneeId;
 
     set((state) => ({
-      tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, assigneeId } : t)
+      tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, assigneeId, _optimistic: true, _optimisticAt: Date.now() } : t)
     }));
     try {
       await api.patch(`/api/tasks/${taskId}`, { assigneeId: assigneeId ? Number(assigneeId) : null });
+      set((state) => ({
+        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, _optimistic: false } : t)
+      }));
     } catch (err: any) {
       console.error("Failed to update task assignee in backend, rolling back:", err);
       set((state) => ({
-        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, assigneeId: prevAssigneeId } : t)
+        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, assigneeId: prevAssigneeId, _optimistic: false } : t)
       }));
       throw err;
     }
@@ -295,7 +305,7 @@ export const useStore = create<WorkspaceState>((set, get) => ({
     const prevTask = { ...task };
 
     set((state) => ({
-      tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, ...data, ...(data.status ? { status: toFrontendStatus(data.status) } : {}) } : t)
+      tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...t, ...data, ...(data.status ? { status: toFrontendStatus(data.status) } : {}), _optimistic: true, _optimisticAt: Date.now() } : t)
     }));
     try {
       const payload: any = { ...data };
@@ -303,7 +313,7 @@ export const useStore = create<WorkspaceState>((set, get) => ({
       if (payload.dueDate) payload.dueDate = new Date(payload.dueDate).toISOString();
       if (payload.assigneeId !== undefined) payload.assigneeId = payload.assigneeId ? Number(payload.assigneeId) : null;
       const { data: updatedTask } = await api.patch<Task>(`/api/tasks/${taskId}`, payload);
-      const formattedTask = { ...updatedTask, status: toFrontendStatus(updatedTask.status) };
+      const formattedTask = { ...updatedTask, status: toFrontendStatus(updatedTask.status), _optimistic: false };
       set((state) => ({
         tasks: state.tasks.map(t => String(t.id) === String(taskId) ? formattedTask : t)
       }));
@@ -311,7 +321,7 @@ export const useStore = create<WorkspaceState>((set, get) => ({
     } catch (err: any) {
       console.error("Failed to update task in backend, rolling back:", err);
       set((state) => ({
-        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? prevTask : t)
+        tasks: state.tasks.map(t => String(t.id) === String(taskId) ? { ...prevTask, _optimistic: false } : t)
       }));
       throw err;
     }
@@ -465,7 +475,10 @@ export const useStore = create<WorkspaceState>((set, get) => ({
       notifications: state.notifications.map(n => ({ ...n, read: true, isRead: true }))
     }));
     try {
-      await api.patch('/api/me/notifications/read-all');
+      const activeWorkspaceId = get().activeWorkspaceId;
+      if (activeWorkspaceId) {
+        await api.patch(`/api/workspaces/${activeWorkspaceId}/notifications/read-all`);
+      }
     } catch (err) {
       console.error("Failed to mark notifications read in backend", err);
     }

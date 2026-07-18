@@ -22,7 +22,7 @@ import { commentReactionsRoutes } from './modules/reactions/reactions.routes.js'
 import { projectDocsRoutes, singleDocRoutes } from './modules/docs/docs.routes.js'
 import { projectSnippetsRoutes, singleSnippetRoutes } from './modules/snippets/snippets.routes.js'
 import { projectSprintsRoutes, singleSprintRoutes } from './modules/sprints/sprints.routes.js'
-import { workspaceActivityRoutes, projectActivityRoutes, notificationsRoutes } from './modules/activity/activity.routes.js'
+import { workspaceActivityRoutes, projectActivityRoutes, workspaceNotificationsRoutes } from './modules/activity/activity.routes.js'
 import { aiRoutes } from './modules/ai/ai.routes.js'
 import { paymentsRoutes } from './modules/payments/payments.routes.js' // Added payments
 import multipart from '@fastify/multipart'
@@ -120,7 +120,7 @@ await app.register(projectSnippetsRoutes, { prefix: '/api/projects/:projectId/sn
 await app.register(singleSnippetRoutes, { prefix: '/api/snippets/:snippetId' })
 await app.register(workspaceActivityRoutes, { prefix: '/api/workspaces/:workspaceId/activity' })
 await app.register(projectActivityRoutes, { prefix: '/api/projects/:projectId/activity' })
-await app.register(notificationsRoutes, { prefix: '/api/me/notifications' })
+await app.register(workspaceNotificationsRoutes, { prefix: '/api/workspaces/:workspaceId/notifications' })
 // — AI —
 await app.register(aiRoutes, { prefix: '/api/ai' })
 // — Payments —

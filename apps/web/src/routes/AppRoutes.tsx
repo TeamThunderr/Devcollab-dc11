@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import React, { useRef } from "react";
 import { Landing } from "../pages/Landing";
 import { AuthPage } from "../pages/AuthPage";
 import { ForgotPassword } from "../pages/ForgotPassword";
@@ -49,11 +50,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 function ProjectRouteGuard({ children, capability }: { children: React.ReactNode; capability: keyof ProjectPermissions }) {
-  const { role } = useRole();
+  const { role, isLoading } = useRole();
   const perms = getProjectPermissions(role);
   const { projectId } = useParams();
+  const hasRedirected = useRef(false);
+
+  if (isLoading) {
+    return <div className="h-full w-full flex items-center justify-center bg-white dark:bg-[#191919]"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+  }
 
   if (!perms[capability]) {
+    if (hasRedirected.current) return null;
+    hasRedirected.current = true;
     return <Navigate to={`/projects/${projectId}/overview`} replace />;
   }
 
@@ -130,7 +138,7 @@ export function AppRoutes() {
           </ProjectRouteGuard>
         } />
         <Route path="members" element={<Members />} />
-        <Route path="chat" element={
+        <Route path="chat/:channel?" element={
           <ProjectRouteGuard capability="canAccessChat">
             <Chat />
           </ProjectRouteGuard>

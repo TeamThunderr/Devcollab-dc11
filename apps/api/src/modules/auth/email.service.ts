@@ -85,7 +85,7 @@ export class EmailService {
       if (!response.ok) {
         const errorData = await response.json()
         console.error('Brevo API Error:', errorData)
-        throw new AppError(500, 'Failed to send email', 'EMAIL_SEND_FAILED')
+        throw new AppError(500, 'EMAIL_SEND_FAILED', 'Failed to send email')
       }
     } catch (error: any) {
       console.error('Email Service Exception:', error)
@@ -143,7 +143,7 @@ export class EmailService {
       if (!response.ok) {
         const errorData = await response.json()
         console.error('Brevo API Error:', errorData)
-        throw new AppError(500, 'Failed to send invite email', 'EMAIL_SEND_FAILED')
+        throw new AppError(500, 'EMAIL_SEND_FAILED', 'Failed to send invite email')
       }
     } catch (error: any) {
       console.error('Email Service Exception:', error)

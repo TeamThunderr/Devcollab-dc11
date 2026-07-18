@@ -98,8 +98,23 @@ export function Board() {
         tasksMap.set(String(t.id), { ...t, status: toFrontendStatus(t.status) });
       } else {
         const existing = tasksMap.get(String(t.id));
-        if (existing && t.status) {
-          tasksMap.set(String(t.id), { ...existing, status: toFrontendStatus(t.status) });
+        if (existing) {
+          // Check #2 & #3 Fix: If storeTask t is currently undergoing an active optimistic local change (_optimistic is true and within 10s timeout), protect t's optimistic state over canonical queryTasks until the API call resolves.
+          // Otherwise, perform explicit field-level merge where canonical queryTasks wins over storeTasks on all backend schema fields.
+          if (t._optimistic && t._optimisticAt && Date.now() - t._optimisticAt < 10000) {
+            tasksMap.set(String(t.id), { ...existing, ...t, status: toFrontendStatus(t.status) });
+          } else {
+            tasksMap.set(String(t.id), {
+              ...t,
+              ...existing,
+              status: toFrontendStatus(existing.status),
+              assigneeId: existing.assigneeId !== undefined ? existing.assigneeId : t.assigneeId,
+              priority: existing.priority !== undefined ? existing.priority : t.priority,
+              dueDate: existing.dueDate !== undefined ? existing.dueDate : t.dueDate,
+              title: existing.title !== undefined ? existing.title : t.title,
+              description: existing.description !== undefined ? existing.description : t.description,
+            });
+          }
         }
       }
     });

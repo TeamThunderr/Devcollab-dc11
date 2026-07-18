@@ -74,6 +74,7 @@ interface RBACContextType {
   setRole: (role: Role) => void;
   permissions: Permissions;
   currentUserId: string;
+  isLoading: boolean;
 }
 
 import { useStore } from "../store/useStore";
@@ -170,8 +171,10 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
 
   const permissions = buildPermissionsForRole(role, currentUserId);
 
+  const isLoading = Boolean(currentProjectId && currentProjectId > 0 && isProjectMembersLoading);
+
   return (
-    <RBACContext.Provider value={{ role, setRole, permissions, currentUserId }}>
+    <RBACContext.Provider value={{ role, setRole, permissions, currentUserId, isLoading }}>
       {children}
     </RBACContext.Provider>
   );
@@ -190,5 +193,5 @@ export const useRole = () => {
   if (!context) {
     throw new Error("useRole must be used within an RBACProvider");
   }
-  return { role: context.role, setRole: context.setRole, permissions: context.permissions, currentUserId: context.currentUserId };
+  return { role: context.role, setRole: context.setRole, permissions: context.permissions, currentUserId: context.currentUserId, isLoading: context.isLoading };
 };

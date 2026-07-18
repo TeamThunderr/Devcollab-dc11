@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, Hash, Send, User, Sparkles, Loader2, AlertCircle } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useRole } from "../context/RBACContext";
 import { getProjectPermissions } from "../lib/projectPermissions";
 import { useStore } from "../store/useStore";
@@ -10,13 +10,20 @@ import { useChat, useSendMessage } from "../hooks/useChat";
 const CHANNELS = ["general", "engineering", "design", "random"];
 
 export function Chat() {
-  const { projectId } = useParams();
+  const { projectId, channel: routeChannel } = useParams();
   const numericProjectId = Number(projectId);
   const { role } = useRole();
   const perms = getProjectPermissions(role);
   const { currentUser } = useAuth();
 
-  const [activeChannel, setActiveChannel] = useState("general");
+  const [activeChannel, setActiveChannel] = useState(routeChannel || "general");
+
+  // Update active channel if route changes
+  useEffect(() => {
+    if (routeChannel && routeChannel !== activeChannel) {
+      setActiveChannel(routeChannel);
+    }
+  }, [routeChannel]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +67,8 @@ export function Chat() {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
     <div className="flex h-full bg-white dark:bg-[#191919]">
       {/* Sidebar Channels */}
@@ -72,7 +81,10 @@ export function Chat() {
           {CHANNELS.map((ch) => (
             <button
               key={ch}
-              onClick={() => setActiveChannel(ch)}
+              onClick={() => {
+                setActiveChannel(ch);
+                navigate(`/projects/${numericProjectId}/chat/${ch}`);
+              }}
               className={`w-full flex items-center gap-2 px-2.5 py-2 text-sm rounded-lg font-medium text-left transition-colors ${
                 activeChannel === ch
                   ? "text-gray-900 dark:text-gray-100 bg-gray-200/70 dark:bg-gray-800/80 shadow-2xs"

@@ -14,11 +14,18 @@ export const activityFeedListSchema = z.array(activityFeedItemSchema)
 
 export const notificationSchema = z.object({
   id: z.number(),
-  userId: z.number(),
+  workspaceId: z.number(),
+  recipientUserId: z.number(),
+  userId: z.number().optional(),
+  actorUserId: z.number().nullable(),
   type: z.string(),
+  contextType: z.string().nullable(),
+  contextId: z.number().nullable(),
   message: z.string(),
+  link: z.string().nullable(),
   isRead: z.boolean(),
-  createdAt: z.date(),
+  createdAt: z.union([z.date(), z.string()]),
 })
 
 export const notificationListSchema = z.array(notificationSchema)
+
