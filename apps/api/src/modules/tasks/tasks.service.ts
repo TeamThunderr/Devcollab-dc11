@@ -67,6 +67,19 @@ export const tasksService = {
       data: task as unknown as Record<string, unknown>,
     })
 
+    if (data.assigneeId && data.assigneeId !== userId) {
+      activityService.createAndEmitNotification({
+        workspaceId,
+        recipientUserId: data.assigneeId,
+        actorUserId: userId,
+        type: 'task_assigned',
+        contextType: 'task',
+        contextId: task.id,
+        message: `You were assigned to task: "${task.title}"`,
+        link: `/projects/${projectId}?taskId=${task.id}`,
+      }).catch(() => {})
+    }
+
     return task
   },
 
@@ -169,11 +182,16 @@ export const tasksService = {
       data: updatedTask as unknown as Record<string, unknown>,
     })
 
-    if (data.assigneeId && data.assigneeId !== task.assigneeId) {
+    if (data.assigneeId && data.assigneeId !== task.assigneeId && data.assigneeId !== userId) {
       activityService.createAndEmitNotification({
-        userId: data.assigneeId,
-        type: 'ASSIGNMENT',
+        workspaceId,
+        recipientUserId: data.assigneeId,
+        actorUserId: userId,
+        type: 'task_assigned',
+        contextType: 'task',
+        contextId: taskId,
         message: `You were assigned to task: "${task.title}"`,
+        link: `/projects/${task.projectId}?taskId=${taskId}`,
       }).catch(() => {})
     }
 

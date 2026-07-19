@@ -14,12 +14,19 @@ export interface ActivityItem {
 }
 
 export interface Notification {
-  id: number;
-  userId: number;
+  id: number | string;
+  workspaceId?: number | string;
+  recipientUserId?: number | string;
+  userId?: number | string;
+  actorUserId?: number | string | null;
   type: string;
+  contextType?: string | null;
+  contextId?: number | string | null;
   message: string;
+  link?: string | null;
   isRead: boolean;
   createdAt: string;
+  read?: boolean;
 }
 
 export function useWorkspaceActivity(workspaceId: number | undefined) {
@@ -44,21 +51,24 @@ export function useProjectActivity(projectId: number | undefined) {
   });
 }
 
-export function useNotifications() {
+export function useNotifications(workspaceId?: number) {
   return useQuery({
-    queryKey: ['notifications'],
+    queryKey: ['notifications', workspaceId],
     queryFn: async () => {
-      const { data } = await api.get<Notification[]>('/api/me/notifications');
+      if (!workspaceId) return [];
+      const { data } = await api.get<Notification[]>(`/api/workspaces/${workspaceId}/notifications`);
       return data;
     },
+    enabled: !!workspaceId,
   });
 }
 
-export function useMarkNotificationRead() {
+export function useMarkNotificationRead(workspaceId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (notificationId: number) => {
-      const { data } = await api.patch<Notification>(`/api/me/notifications/${notificationId}/read`);
+    mutationFn: async (notificationId: number | string) => {
+      if (!workspaceId) throw new Error('workspaceId is required');
+      const { data } = await api.patch<Notification>(`/api/workspaces/${workspaceId}/notifications/${notificationId}/read`);
       return data;
     },
     onSuccess: () => {
@@ -67,11 +77,12 @@ export function useMarkNotificationRead() {
   });
 }
 
-export function useMarkAllNotificationsRead() {
+export function useMarkAllNotificationsRead(workspaceId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.patch<{ success: boolean }>('/api/me/notifications/read-all');
+      if (!workspaceId) throw new Error('workspaceId is required');
+      const { data } = await api.patch<{ success: boolean }>(`/api/workspaces/${workspaceId}/notifications/read-all`);
       return data;
     },
     onSuccess: () => {

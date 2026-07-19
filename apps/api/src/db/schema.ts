@@ -32,7 +32,8 @@ export const roleEnum = pgEnum('role', ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'])
 export const projectRoleEnum = pgEnum('project_role', ['OWNER', 'ADMIN', 'TEAM_LEAD', 'MEMBER', 'VIEWER'])
 export const taskStatusEnum = pgEnum('task_status', ['TO_DO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'])
 export const taskPriorityEnum = pgEnum('task_priority', ['P0', 'P1', 'P2'])
-export const notificationTypeEnum = pgEnum('notification_type', ['MENTION', 'ASSIGNMENT', 'SYSTEM'])
+export const notificationTypeEnum = pgEnum('notification_type', ['mention', 'task_assigned', 'role_changed', 'system'])
+export const notificationContextTypeEnum = pgEnum('notification_context_type', ['chat', 'project', 'task'])
 export const attachmentTypeEnum = pgEnum('attachment_type', ['TASK', 'COMMENT', 'DOC', 'SNIPPET'])
 export const taskRelationEnum = pgEnum('task_relation', ['BLOCKS', 'IS_BLOCKED_BY', 'RELATES_TO', 'DUPLICATES'])
 export const reactionEntityTypeEnum = pgEnum('reaction_entity_type', ['COMMENT', 'DOC'])
@@ -269,12 +270,19 @@ export const activityFeed = pgTable('activity_feed', {
 
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  type: notificationTypeEnum('type').notNull(),
+  workspaceId: integer('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  recipientUserId: integer('recipient_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  actorUserId: integer('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  type: notificationTypeEnum('type').default('mention').notNull(),
+  contextType: notificationContextTypeEnum('context_type'),
+  contextId: integer('context_id'),
   message: text('message').notNull(),
+  link: text('link'),
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (t) => ({
+  workspaceRecipientUnreadIdx: index('notifications_ws_recipient_is_read_idx').on(t.workspaceId, t.recipientUserId, t.isRead),
+}))
 
 // --- ATTACHMENTS ---
 export const attachments = pgTable('attachments', {

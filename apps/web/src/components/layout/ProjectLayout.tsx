@@ -29,6 +29,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "../../components/ui/DropdownMenu";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationBell } from "../notifications/NotificationBell";
 import { useWorkspaces } from "../../hooks/useWorkspaces";
 import { useProjects, useProjectMembers } from "../../hooks/useProjects";
 import { useRole } from "../../context/RBACContext";
@@ -310,10 +311,7 @@ export function ProjectLayout() {
               <kbd className="font-sans">⌘K</kbd>
             </button>
 
-            <button className="relative p-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-center">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-black"></span>
-            </button>
+            <NotificationBell />
           </div>
         </header>
 

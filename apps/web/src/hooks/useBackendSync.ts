@@ -21,6 +21,7 @@ export function useBackendSync() {
       let activities: ActivityItem[] | undefined;
       let snippets: Snippet[] = [];
       let docs: Doc[] = [];
+      let notifications: Notification[] | undefined;
 
       if (activeWs) {
         const wsId = activeWs.id;
@@ -72,10 +73,10 @@ export function useBackendSync() {
           snipResults.forEach(r => { if (r.data) snippets.push(...r.data); });
           docResults.forEach(r => { if (r.data) docs.push(...r.data); });
         }
-      }
 
-      // Fetch Notifications
-      const { data: notifications } = await api.get<Notification[]>('/api/me/notifications').catch(() => ({ data: undefined }));
+        const notifRes = await api.get<Notification[]>(`/api/workspaces/${wsId}/notifications`).catch(() => ({ data: undefined }));
+        notifications = notifRes.data;
+      }
 
       // Update Zustand store
       useStore.getState().syncFromBackend({

@@ -4,6 +4,7 @@ import { Search, Bell, Command, User, Settings, LogOut, Crown } from "lucide-rea
 import { ThemeToggle } from "../common/ThemeToggle";
 import { Tooltip } from "../ui/Tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "../ui/DropdownMenu";
+import { NotificationBell } from "../notifications/NotificationBell";
 import { useStore } from "../../store/useStore";
 
 import { useAuth } from "../../context/AuthContext";
@@ -18,19 +19,6 @@ export function Header({ title = "Overview" }: { title?: string }) {
   const activeWorkspaceObj = workspaces?.find(w => Number(w.id) === Number(activeWorkspaceId)) || workspaces?.[0];
   const activeWorkspace = activeWorkspaceObj?.name || "Workspace";
   const userInitials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
-
-  const { data: notificationsData = [] } = useNotifications();
-  const markAllReadMutation = useMarkAllNotificationsRead();
-  const markReadMutation = useMarkNotificationRead();
-  const unreadCount = notificationsData.filter((n: any) => !n.isRead).length;
-
-  const handleMarkAllRead = () => {
-    markAllReadMutation.mutate();
-  };
-
-  const handleNotificationClick = (id: number) => {
-    markReadMutation.mutate(id);
-  };
 
   return (
     <header className="h-12 flex items-center justify-between px-8 border-b border-gray-200 dark:border-[#2C2C2C] bg-white/80 dark:bg-[#191919]/80 backdrop-blur-md transition-colors duration-300">
@@ -73,52 +61,7 @@ export function Header({ title = "Overview" }: { title?: string }) {
           </div>
         </Tooltip>
 
-        <DropdownMenu>
-          <Tooltip content="Notifications" side="bottom">
-            <DropdownMenuTrigger asChild>
-              <button className="relative p-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-center focus:outline-none">
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-black"></span>}
-              </button>
-            </DropdownMenuTrigger>
-          </Tooltip>
-          <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {notificationsData.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-500">No notifications</div>
-            ) : (
-              notificationsData.map((notification: any) => (
-                <DropdownMenuItem 
-                  key={notification.id} 
-                  className="py-3 cursor-pointer"
-                  onClick={() => handleNotificationClick(notification.id)}
-                >
-                  <div className="flex gap-3 w-full">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 font-bold text-xs">
-                      {notification.type === 'MENTION' ? '@' : notification.type === 'ASSIGNMENT' ? '✓' : 'ℹ'}
-                    </div>
-                    <div className="flex flex-col gap-1 w-full min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className={`text-sm text-gray-900 dark:text-gray-100 leading-snug ${notification.isRead ? '' : 'font-medium'}`}>
-                          {notification.message}
-                        </span>
-                        {!notification.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1"></div>}
-                      </div>
-                      <span className="text-xs text-gray-500">{new Date(notification.createdAt).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))
-            )}
-            <DropdownMenuSeparator />
-            {unreadCount > 0 && (
-              <DropdownMenuItem onClick={handleMarkAllRead} className="justify-center text-xs font-medium text-indigo-500 py-3 cursor-pointer">
-                Mark all as read
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

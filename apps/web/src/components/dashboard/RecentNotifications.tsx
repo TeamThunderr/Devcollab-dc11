@@ -1,23 +1,35 @@
 import React from "react";
 import { Check, CheckCircle2, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useNotifications, useMarkAllNotificationsRead } from "../../hooks/useActivity";
+import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from "../../hooks/useActivity";
+import { useStore } from "../../store/useStore";
 import { useRole } from "../../context/RBACContext";
 
 export function RecentNotifications({ projectId }: { projectId?: string }) {
   const { role, currentUserId } = useRole();
+  const activeWorkspaceId = useStore((state) => state.activeWorkspaceId);
 
   const navigate = useNavigate();
 
-  const { data: notifications = [] } = useNotifications();
-  const markAllReadMutation = useMarkAllNotificationsRead();
+  const { data: notifications = [] } = useNotifications(activeWorkspaceId ? Number(activeWorkspaceId) : undefined);
+  const markAllReadMutation = useMarkAllNotificationsRead(activeWorkspaceId ? Number(activeWorkspaceId) : undefined);
+  const markReadMutation = useMarkNotificationRead(activeWorkspaceId ? Number(activeWorkspaceId) : undefined);
 
   const markAllNotificationsRead = () => {
     markAllReadMutation.mutate();
   };
 
+  const handleNotifClick = (notif: any) => {
+    if (!notif.isRead && !notif.read) {
+      markReadMutation.mutate(notif.id);
+    }
+    if (notif.link) {
+      navigate(notif.link);
+    }
+  };
+
   const filteredNotifs = React.useMemo(() => {
-    return notifications; // Link doesn't exist on API model yet
+    return notifications;
   }, [notifications, projectId]);
 
   const sortedNotifs = [...filteredNotifs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
@@ -31,13 +43,13 @@ export function RecentNotifications({ projectId }: { projectId?: string }) {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Notifications
           </h3>
-          {filteredNotifs.filter(n => !n.isRead).length > 0 && (
+          {filteredNotifs.filter(n => !n.isRead && !n.read).length > 0 && (
             <span className="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1">
-              {filteredNotifs.filter(n => !n.isRead).length}
+              {filteredNotifs.filter(n => !n.isRead && !n.read).length}
             </span>
           )}
         </div>
-        {notifications.some(n => !n.isRead) && (
+        {notifications.some(n => !n.isRead && !n.read) && (
 
           <button 
             onClick={markAllNotificationsRead}
@@ -54,11 +66,12 @@ export function RecentNotifications({ projectId }: { projectId?: string }) {
             {sortedNotifs.map((notif) => (
               <div 
                 key={notif.id}
-                className={`p-3 flex items-start gap-3 border-b border-gray-100 dark:border-[#2C2C2C] last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2C2C2C]/50 transition-colors ${!notif.isRead ? 'border-l-2 border-l-black dark:border-l-white bg-gray-50 dark:bg-white/5' : 'border-l-2 border-l-transparent'}`}
+                onClick={() => handleNotifClick(notif)}
+                className={`p-3 flex items-start gap-3 border-b border-gray-100 dark:border-[#2C2C2C] last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2C2C2C]/50 transition-colors ${!notif.isRead && !notif.read ? 'border-l-2 border-l-black dark:border-l-white bg-gray-50 dark:bg-white/5' : 'border-l-2 border-l-transparent'}`}
               >
                 <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent('Notification')}&background=random`} alt="Avatar" className="w-7 h-7 rounded-full shrink-0 border border-gray-200 dark:border-gray-800" />
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <p className={`text-sm ${!notif.isRead ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-300'} truncate`}>
+                  <p className={`text-sm ${!notif.isRead && !notif.read ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-300'} truncate`}>
                     {notif.message}
                   </p>
                   <span className="text-xs text-gray-500">{new Date(notif.createdAt).toLocaleDateString()}</span>

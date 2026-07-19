@@ -66,6 +66,9 @@ export function initSocket(httpServer: HttpServer): TypedIO {
   // ── Connection Handler ────────────────────────────────────────────────────
   io.on('connection', (socket) => {
     const userId = socket.data.userId
+    if (userId) {
+      socket.join(`user:${userId}`)
+    }
     logger.info({ userId, socketId: socket.id }, 'Client connected')
 
     // ── Workspace Rooms ─────────────────────────────────────────────────────
